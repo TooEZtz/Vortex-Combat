@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get selected map and players from session storage
-    const selectedMap = sessionStorage.getItem('selectedMap');
+  const selectedMap = sessionStorage.getItem('selectedMap');
     const player1Character = sessionStorage.getItem('player1Character');
     const player2Character = sessionStorage.getItem('player2Character');
     
@@ -33,8 +33,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add debug overlay
     createDebugOverlay();
     
-    // Set up the background
-    const backgroundContainer = document.getElementById('background-container');
+    // Set up the background - create the background container element
+    const fightArena = document.getElementById('fightArena');
+    const backgroundContainer = document.createElement('div');
+    backgroundContainer.id = 'background-container';
+    backgroundContainer.className = 'background-container';
+    
+    // Insert the background container as the first child of the fight arena
+    if (fightArena && fightArena.firstChild) {
+        fightArena.insertBefore(backgroundContainer, fightArena.firstChild);
+    } else if (fightArena) {
+        fightArena.appendChild(backgroundContainer);
+    }
     
     // Create map images based on the selected map
     setupMapBackground(selectedMap, backgroundContainer);
@@ -563,19 +573,22 @@ function endGame() {
 function setupMapBackground(mapId, container) {
     if (!container) return;
     
-    // Create a canvas to generate the map background
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 800;
-    const ctx = canvas.getContext('2d');
-    
-    // Map colors based on the map ID
-    const mapColors = {
-        'temple': '#3a2f23',
-        'palace': '#4a1522',
-        'pit': '#1a1a1a',
-        'bridge': '#162436'
+    // Map IDs to the actual GIF filenames
+    const mapFiles = {
+        'temple': 'Celestial_Palace.gif',
+        'palace': 'Haunted.gif',
+        'pit': 'TheChinaTown.gif',
+        'bridge': 'Giaia.gif'
     };
+    
+    // Get the correct filename for the selected map
+    const mapFile = mapFiles[mapId] || 'Celestial_Palace.gif';
+    
+    // Set the background image directly from the assests folder
+    container.style.backgroundImage = `url(../assests/maps/${mapFile})`;
+    container.style.backgroundSize = 'cover';
+    container.style.backgroundPosition = 'center';
+    container.style.backgroundRepeat = 'no-repeat';
     
     // Map names for the watermark
     const mapNames = {
@@ -585,32 +598,7 @@ function setupMapBackground(mapId, container) {
         'bridge': 'DEAD POOL'
     };
     
-    // Create gradient background
-    const color = mapColors[mapId] || '#000000';
-    const gradient = ctx.createLinearGradient(0, 0, 1200, 800);
-    gradient.addColorStop(0, color);
-    gradient.addColorStop(1, '#000000');
-    
-    // Fill background
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1200, 800);
-    
-    // Add map name watermark
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.font = 'bold 120px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(mapNames[mapId] || 'ARENA', 600, 400);
-    
-    // Set the background image
-    const img = canvas.toDataURL('image/png');
-    container.style.backgroundImage = `url(${img})`;
-    
-    // Try to load actual map image if available
-    const actualMapImage = new Image();
-    actualMapImage.src = `../assets/images/maps/${mapId}.png`;
-    actualMapImage.onload = function() {
-        container.style.backgroundImage = `url(${actualMapImage.src})`;
-    };
+    console.log(`Loading map background: ${mapId} (${mapFile})`);
 }
 
 function setupFighters(player1Id, player2Id) {
@@ -670,17 +658,17 @@ function setupGameTimer() {
     const timerElement = document.querySelector('.timer');
     
     if (!timerElement) return;
-    
-    const gameTimer = setInterval(() => {
-        timeLeft--;
-        timerElement.textContent = timeLeft;
-        
-        if (timeLeft <= 0) {
-            clearInterval(gameTimer);
+  
+  const gameTimer = setInterval(() => {
+      timeLeft--;
+      timerElement.textContent = timeLeft;
+      
+      if (timeLeft <= 0) {
+          clearInterval(gameTimer);
             // Handle time over - show time's up message
             document.getElementById('fightText').textContent = "TIME'S UP!";
-        }
-    }, 1000);
+      }
+  }, 1000);
 }
 
 function animateFightText() {

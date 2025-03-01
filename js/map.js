@@ -20,52 +20,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    createMapPlaceholders();
+    setupMapImages();
     setupMapSelection();
     setupMapHoverEffects();
 });
 
-function createMapPlaceholders() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    
+function setupMapImages() {
+    // Define the map images
     const maps = [
-        { name: 'TEMPLE', color: '#3a2f23', id: 'temple' },
-        { name: 'PALACE', color: '#4a1522', id: 'palace' },
-        { name: 'THE PIT', color: '#1a1a1a', id: 'pit' },
-        { name: 'DEAD POOL', color: '#162436', id: 'bridge' }
+        { id: 'temple', file: 'Celestial_Palace.gif' },
+        { id: 'palace', file: 'Haunted.gif' },
+        { id: 'pit', file: 'TheChinaTown.gif' },
+        { id: 'bridge', file: 'Giaia.gif' }
     ];
     
-    maps.forEach((map, i) => {
-        // Create gradient background
-        const gradient = ctx.createLinearGradient(0, 0, 400, 300);
-        gradient.addColorStop(0, map.color);
-        gradient.addColorStop(1, '#000000');
-        
-        // Fill background
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 400, 300);
-        
-        // Add map name watermark
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(map.name, 200, 150);
-        
-        // Save the placeholder
-        const img = canvas.toDataURL('image/png');
-        mapImages[map.id] = img; // Store image for hover effect
-        
-        // Find the map card with matching data-map attribute
-        const mapCard = document.querySelector(`.map-card[data-map="${map.id}"]`);
-        if (mapCard) {
-            const imgElement = mapCard.querySelector('.map-preview img');
-            if (imgElement) {
-                imgElement.src = img;
-            }
-        }
+    // Store the image paths for hover effects
+    maps.forEach(map => {
+        mapImages[map.id] = `../assests/maps/${map.file}`;
     });
 }
 

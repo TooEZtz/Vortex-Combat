@@ -1,0 +1,51 @@
+/* Pixel Fonts for Fighting Game */
+
+/* Import Press Start 2P - perfect for retro game titles and headers */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Import VT323 - great for game text, scores, and UI elements */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+/* Import Silkscreen - good for buttons and smaller UI elements */
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen&display=swap');
+
+/* Font Classes */
+.font-title {
+    font-family: 'Press Start 2P', cursive;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    line-height: 1.4;
+}
+
+.font-display {
+    font-family: 'VT323', monospace;
+    letter-spacing: 1px;
+}
+
+.font-ui {
+    font-family: 'Silkscreen', cursive;
+    letter-spacing: 1px;
+}
+
+/* Pixel-perfect rendering */
+* {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* Text shadow for pixel art style */
+.pixel-shadow {
+    text-shadow: 2px 2px 0 #000;
+}
+
+.pixel-shadow-red {
+    text-shadow: 2px 2px 0 #900;
+}
+
+/* Pixel border effect */
+.pixel-border {
+    border-style: solid;
+    border-width: 4px;
+    image-rendering: pixelated;
+} 

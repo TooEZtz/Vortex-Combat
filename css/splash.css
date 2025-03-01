@@ -1,3 +1,79 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'VT323', monospace;
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+  font-size: 18px;
+}
+
+#splash {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(to bottom, #000000, #1a0000);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-title {
+  font-size: 72px;
+  font-family: 'Press Start 2P', cursive;
+  color: #ff0000;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.9);
+  margin-bottom: 40px;
+  text-align: center;
+  animation: titlePulse 2s infinite;
+  letter-spacing: 4px;
+  line-height: 1.4;
+}
+
+.game-subtitle {
+  font-size: 24px;
+  font-family: 'Press Start 2P', cursive;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+  margin-bottom: 60px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.start-button {
+  padding: 20px 40px;
+  font-size: 36px;
+  font-family: 'Press Start 2P', cursive;
+  background: linear-gradient(to bottom, #ff0000, #990000);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  animation: buttonPulse 1.5s infinite;
+  letter-spacing: 2px;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+}
+
+.start-button:hover {
+  transform: scale(1.1);
+  background: linear-gradient(to bottom, #ff3333, #cc0000);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.9);
+}
+
+.credits {
+  position: absolute;
+  bottom: 20px;
+  font-size: 16px;
+  font-family: 'VT323', monospace;
+  color: #999;
+  text-align: center;
+  width: 100%;
+  letter-spacing: 1px;
+}
+
 /* Splash Screen Styles */
 #splashScreen {
   display: flex;

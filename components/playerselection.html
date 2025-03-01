@@ -10,86 +10,108 @@
 <body>
     <div id="charSelect">
         <div class="select-header">
-            <h2>Choose Your Fighter</h2>
+            <h2 class="font-title">Choose Your Fighter</h2>
         </div>
         
         <div class="character-select-container">
             <!-- Player 1 Side -->
             <div class="player-side" id="player1Side">
                 <div class="player-label">
-                    <h3>Player 1</h3>
-                    <span class="controls-hint">WASD + JKL + U</span>
+                    <h3 class="font-title">Player 1</h3>
+                    <span class="controls-hint font-display">WASD + JKL + U</span>
                 </div>
                 <div class="character-grid">
-                    <div class="character-card" onclick="selectCharacter(1, 'scorpion')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder1.png" alt="Scorpion">
+                    <div class="character-card selectable" onclick="selectCharacter(1, 'scorpion')" 
+                         onmouseover="showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
+                         onmouseout="hideCharacterPreview('player1')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/preview.gif'); background-size: cover; background-position: center;">
+                            <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name">Scorpion</div>
+                        <div class="character-name font-display">Scorpion</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(1, 'subzero')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder2.png" alt="Sub-Zero">
+                    <div class="character-card selectable" onclick="selectCharacter(1, 'subzero')" 
+                         onmouseover="showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
+                         onmouseout="hideCharacterPreview('player1')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/preview.gif'); background-size: cover; background-position: center;">
+                            <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name">Sub-Zero</div>
+                        <div class="character-name font-display">Sub-Zero</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(1, 'reptile')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder3.png" alt="Reptile">
+                    <div class="character-card coming-soon">
+                        <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
+                            <div class="coming-soon-overlay"></div>
+                            <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name">Reptile</div>
+                        <div class="character-name font-display">Reptile</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(1, 'raiden')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder4.png" alt="Raiden">
+                    <div class="character-card coming-soon">
+                        <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
+                            <div class="coming-soon-overlay"></div>
+                            <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name">Raiden</div>
+                        <div class="character-name font-display">Raiden</div>
                     </div>
                 </div>
             </div>
 
-            <!-- VS Divider -->
+            <!-- VS Divider with Character Previews -->
             <div class="vs-divider">
-                <div class="vs-text">VS</div>
+                <div class="preview-container">
+                    <div id="player1Preview" class="character-preview player1-preview">
+                        <div class="preview-image"></div>
+                        <div class="preview-name font-display">Player 1</div>
+                    </div>
+                    <div class="vs-text font-title">VS</div>
+                    <div id="player2Preview" class="character-preview player2-preview">
+                        <div class="preview-image"></div>
+                        <div class="preview-name font-display">Player 2</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Player 2 Side -->
             <div class="player-side" id="player2Side">
                 <div class="player-label">
-                    <h3>Player 2</h3>
-                    <span class="controls-hint">Arrows + 1,2,3,0</span>
+                    <h3 class="font-title">Player 2</h3>
+                    <span class="controls-hint font-display">Arrows + 1,2,3,0</span>
                 </div>
                 <div class="character-grid">
-                    <div class="character-card" onclick="selectCharacter(2, 'johnny')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder5.png" alt="Johnny Cage">
+                    <div class="character-card selectable" onclick="selectCharacter(2, 'johnny')" 
+                         onmouseover="showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
+                         onmouseout="hideCharacterPreview('player2')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/right_preview.gif'); background-size: cover; background-position: center;">
+                            <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name">Johnny Cage</div>
+                        <div class="character-name font-display">Johnny Cage</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(2, 'sonya')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder6.png" alt="Sonya">
+                    <div class="character-card selectable" onclick="selectCharacter(2, 'sonya')" 
+                         onmouseover="showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
+                         onmouseout="hideCharacterPreview('player2')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/right_preview.gif'); background-size: cover; background-position: center;">
+                            <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name">Sonya</div>
+                        <div class="character-name font-display">Sonya</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(2, 'jax')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder7.png" alt="Jax">
+                    <div class="character-card coming-soon">
+                        <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
+                            <div class="coming-soon-overlay"></div>
+                            <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name">Jax</div>
+                        <div class="character-name font-display">Jax</div>
                     </div>
-                    <div class="character-card" onclick="selectCharacter(2, 'kunglao')">
-                        <div class="character-portrait">
-                            <img src="../assets/images/characters/placeholder8.png" alt="Kung Lao">
+                    <div class="character-card coming-soon">
+                        <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
+                            <div class="coming-soon-overlay"></div>
+                            <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name">Kung Lao</div>
+                        <div class="character-name font-display">Kung Lao</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <button id="startFight" style="display: none;">Ready!</button>
-        <div id="selectionMessage"></div>
+        <button id="startFight" class="font-title" style="display: none;">Ready!</button>
+        <div id="selectionMessage" class="font-display"></div>
     </div>
     <script src="../js/playerselection.js"></script>
 </body>

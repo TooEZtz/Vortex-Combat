@@ -2,23 +2,36 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Arial', sans-serif;
+  font-family: 'VT323', monospace;
   background: #000;
   color: #fff;
+  font-size: 20px;
 }
 
 .background-container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: 0;
   background-size: cover;
-  background-position: center;
+  background-position: center center;
   background-repeat: no-repeat;
-  filter: blur(3px) brightness(0.6);
-  transform: scale(1.05);
+  filter: brightness(0.7);
+  box-shadow: inset 0 0 150px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* Add vignette overlay */
+.background-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
 }
 
 #fightScreen {
@@ -43,17 +56,21 @@ body {
 .round-info {
   font-size: 24px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #ff0000;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  letter-spacing: 2px;
 }
 
 .timer {
   font-size: 36px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #fff;
   background: rgba(255, 0, 0, 0.7);
   padding: 5px 15px;
   border-radius: 5px;
+  letter-spacing: 2px;
 }
 
 /* Health bars at the top */
@@ -75,9 +92,11 @@ body {
 .player-health-name {
   font-size: 18px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #fff;
   margin-bottom: 5px;
-  text-shadow: 0 0 5px rgba(255, 0, 0, 0.7);
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.9);
+  letter-spacing: 1px;
 }
 
 .health-bar-container {
@@ -104,7 +123,8 @@ body {
   align-items: center;
   color: white;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 16px;
+  font-family: 'VT323', monospace;
   text-shadow: 1px 1px 2px black;
 }
 
@@ -117,6 +137,18 @@ body {
   position: relative;
   border-bottom: 2px dashed rgba(255, 255, 255, 0.3);
   min-height: 400px;
+  position: relative;
+  overflow: hidden; /* Ensure content doesn't spill out */
+}
+
+/* Move the background container inside the fight arena */
+#fightArena .background-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* Place behind the fighters */
 }
 
 .fighter {
@@ -138,14 +170,16 @@ body {
 }
 
 .fighter-name {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   margin-bottom: 10px;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
   position: absolute;
   top: -40px;
   width: 100%;
   text-align: center;
+  letter-spacing: 1px;
 }
 
 .fighter-image {
@@ -184,16 +218,20 @@ body {
 #fightText {
   font-size: 72px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #ff0000;
   text-shadow: 0 0 20px rgba(255, 0, 0, 0.9);
   animation: pulse 2s infinite;
+  letter-spacing: 4px;
 }
 
 #vsText {
   font-size: 36px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #fff;
   margin-top: 10px;
+  letter-spacing: 2px;
 }
 
 #controls {
@@ -215,11 +253,16 @@ body {
 .player1-controls h3, .player2-controls h3 {
   color: #ff0000;
   margin-bottom: 10px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 16px;
+  letter-spacing: 1px;
 }
 
 .player1-controls p, .player2-controls p {
   margin: 5px 0;
-  font-size: 14px;
+  font-size: 16px;
+  font-family: 'VT323', monospace;
+  letter-spacing: 1px;
 }
 
 .debug-controls {
@@ -233,6 +276,7 @@ body {
   color: #999;
   padding: 5px 10px;
   font-size: 12px;
+  font-family: 'Silkscreen', cursive;
   cursor: pointer;
   border-radius: 5px;
   margin: 0 5px;
@@ -441,9 +485,11 @@ body {
   text-align: center;
   font-size: 24px;
   font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
   color: #ffff00;
   text-shadow: 0 0 10px #ff0000;
   animation: fadeInOut 1.5s ease;
+  letter-spacing: 2px;
 }
 
 @keyframes fadeInOut {

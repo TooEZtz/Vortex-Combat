@@ -6,6 +6,7 @@
     <title>Select Battle Arena</title>
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/maps.css">
+    <script src="../js/sound.js"></script>
 </head>
 <body>
     <div class="background-container"></div>
@@ -16,7 +17,9 @@
         </div>
         
         <div class="maps-grid">
-            <div class="map-card" data-map="temple">
+            <div class="map-card" data-map="temple" 
+                 onmousedown="SoundManager.playClickSound()" 
+                 onmouseover="SoundManager.playHoverSound()">
                 <div class="map-preview">
                     <img src="../assests/maps/Celestial_Palace.gif" alt="Temple">
                 </div>
@@ -26,7 +29,9 @@
                 </div>
             </div>
 
-            <div class="map-card" data-map="palace">
+            <div class="map-card" data-map="palace" 
+                 onmousedown="SoundManager.playClickSound()" 
+                 onmouseover="SoundManager.playHoverSound()">
                 <div class="map-preview">
                     <img src="../assests/maps/Haunted.gif" alt="Palace">
                 </div>
@@ -36,7 +41,9 @@
                 </div>
             </div>
 
-            <div class="map-card" data-map="pit">
+            <div class="map-card" data-map="pit" 
+                 onmousedown="SoundManager.playClickSound()" 
+                 onmouseover="SoundManager.playHoverSound()">
                 <div class="map-preview">
                     <img src="../assests/maps/TheChinaTown.gif" alt="The Pit">
                 </div>
@@ -46,7 +53,9 @@
                 </div>
             </div>
 
-            <div class="map-card" data-map="bridge">
+            <div class="map-card" data-map="bridge" 
+                 onmousedown="SoundManager.playClickSound()" 
+                 onmouseover="SoundManager.playHoverSound()">
                 <div class="map-preview">
                     <img src="../assests/maps/Giaia.gif" alt="Bridge">
                 </div>
@@ -57,7 +66,15 @@
             </div>
         </div>
 
-        <button id="startFight" class="font-title">FIGHT!</button>
+        <div class="button-container">
+            <button id="backButton" class="font-title back-button" 
+                    onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToPlayerSelection(); }, 300);" 
+                    onmouseover="SoundManager.playHoverSound()">BACK</button>
+            
+            <button id="startFight" class="font-title" style="display: none;"
+                    onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToFight(); }, 300);" 
+                    onmouseover="SoundManager.playHoverSound()">FIGHT!</button>
+        </div>
     </div>
     <script src="../js/map.js"></script>
 </body>

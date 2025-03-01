@@ -6,6 +6,7 @@
     <title>Character Selection - Mortal Kombat Clone</title>
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/playerselection.css">
+    <script src="../js/sound.js"></script>
 </head>
 <body>
     <div id="charSelect">
@@ -21,21 +22,23 @@
                     <span class="controls-hint font-display">WASD + JKL + U</span>
                 </div>
                 <div class="character-grid">
-                    <div class="character-card selectable" onclick="selectCharacter(1, 'scorpion')" 
-                         onmouseover="showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
-                         onmouseout="hideCharacterPreview('player1')">
+                    <div class="character-card selectable" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'scorpion')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
+                         onmouseout="if(!selectedCharacters.player1Character) hideCharacterPreview('player1')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_1/preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name font-display">Scorpion</div>
+                        <div class="character-name font-display">CURSE-OR</div>
                     </div>
-                    <div class="character-card selectable" onclick="selectCharacter(1, 'subzero')" 
-                         onmouseover="showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
-                         onmouseout="hideCharacterPreview('player1')">
-                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/preview.gif'); background-size: cover; background-position: center;">
+                    <div class="character-card selectable" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'subzero')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/Right_idle.gif', 'player1')" 
+                         onmouseout="if(!selectedCharacters.player1Character) hideCharacterPreview('player1')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_2/2_right_preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name font-display">Sub-Zero</div>
+                        <div class="character-name font-display">REIGN</div>
                     </div>
                     <div class="character-card coming-soon">
                         <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
@@ -76,21 +79,23 @@
                     <span class="controls-hint font-display">Arrows + 1,2,3,0</span>
                 </div>
                 <div class="character-grid">
-                    <div class="character-card selectable" onclick="selectCharacter(2, 'johnny')" 
-                         onmouseover="showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
-                         onmouseout="hideCharacterPreview('player2')">
+                    <div class="character-card selectable" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'johnny')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
+                         onmouseout="if(!selectedCharacters.player2Character) hideCharacterPreview('player2')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_1/right_preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name font-display">Johnny Cage</div>
+                        <div class="character-name font-display">CURSE-OR</div>
                     </div>
-                    <div class="character-card selectable" onclick="selectCharacter(2, 'sonya')" 
-                         onmouseover="showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
-                         onmouseout="hideCharacterPreview('player2')">
-                        <div class="character-portrait" style="background-image: url('../assests/players/character_1/right_preview.gif'); background-size: cover; background-position: center;">
+                    <div class="character-card selectable" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'sonya')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/Left_idle.gif', 'player2')" 
+                         onmouseout="if(!selectedCharacters.player2Character) hideCharacterPreview('player2')">
+                        <div class="character-portrait" style="background-image: url('../assests/players/character_2/2_Left_Preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
                         </div>
-                        <div class="character-name font-display">Sonya</div>
+                        <div class="character-name font-display">REIGN</div>
                     </div>
                     <div class="character-card coming-soon">
                         <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
@@ -110,7 +115,15 @@
             </div>
         </div>
 
-        <button id="startFight" class="font-title" style="display: none;">Ready!</button>
+        <div class="button-container">
+            <button id="backButton" class="back-button" 
+                    onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToMainMenu(); }, 300);" 
+                    onmouseover="SoundManager.playHoverSound()">BACK</button>
+            
+            <button id="startFight" class="font-title" style="display: none;" 
+                    onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToMapSelection(); }, 300);" 
+                    onmouseover="SoundManager.playHoverSound()">FIGHT!</button>
+        </div>
         <div id="selectionMessage" class="font-display"></div>
     </div>
     <script src="../js/playerselection.js"></script>

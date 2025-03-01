@@ -6,6 +6,8 @@
     <title>FIGHT!</title>
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/fight.css">
+    <!-- Add sound.js -->
+    <script src="../js/sound.js"></script>
 </head>
 <body>
     <div id="fightScreen">
@@ -34,7 +36,7 @@
         <div id="fightArena">
             <!-- Background container will be added here by JavaScript -->
             <div id="player1" class="fighter">
-                <div class="fighter-name">PLAYER 1</div>
+                <div class="fighter-name">Curse-er</div>
                 <div class="fighter-image">
                     P1
                 </div>
@@ -46,7 +48,7 @@
             </div>
             
             <div id="player2" class="fighter">
-                <div class="fighter-name">PLAYER 2</div>
+                <div class="fighter-name">Reign</div>
                 <div class="fighter-image">
                     P2
                 </div>
@@ -76,9 +78,18 @@
                 </div>
             </div>
             
-            <div class="debug-controls">
-                <button id="debugButton" onclick="showSessionStorage()">Debug Session Storage</button>
-                <button id="changeCharactersButton" onclick="changeCharacters()">Change Characters</button>
+            <div class="button-container">
+                <button id="backButton" class="back-button" 
+                        onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToMapSelection(); }, 300);" 
+                        onmouseover="SoundManager.playHoverSound()">BACK</button>
+                
+                <button id="changeCharactersButton" 
+                        onmousedown="SoundManager.playClickSound(); setTimeout(function() { changeCharacters(); }, 300);" 
+                        onmouseover="SoundManager.playHoverSound()">CHANGE FIGHTERS</button>
+                
+                <button id="debugButton" 
+                        onmousedown="SoundManager.playClickSound(); setTimeout(function() { showSessionStorage(); }, 300);" 
+                        onmouseover="SoundManager.playHoverSound()">DEBUG</button>
             </div>
         </div>
     </div>
@@ -88,24 +99,187 @@
     <audio id="victorySound" src="../assets/sounds/victory.mp3" preload="auto"></audio>
     
     <script>
+        // Function to show session storage data
         function showSessionStorage() {
-            const sessionData = {
-                map: sessionStorage.getItem('selectedMap'),
-                player1: sessionStorage.getItem('player1Character'),
-                player2: sessionStorage.getItem('player2Character')
-            };
+            console.log('Showing session storage...');
             
-            alert('Session Storage Data:\n' + 
-                  'Map: ' + sessionData.map + '\n' +
-                  'Player 1: ' + sessionData.player1 + '\n' +
-                  'Player 2: ' + sessionData.player2);
-            
-            console.log('Session Storage Data:', sessionData);
+            // Play click sound
+            if (window.SoundManager) {
+                // Create a new audio element specifically for this action
+                const clickSound = new Audio('../assests/audio/button_click.mp3');
+                clickSound.volume = 0.5;
+                
+                // When the sound can play, play it and then show the alert
+                clickSound.addEventListener('canplaythrough', function() {
+                    console.log('Button sound loaded, playing...');
+                    
+                    // Play the sound
+                    const playPromise = clickSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('Button sound played, showing alert...');
+                            
+                            // Wait for the sound to play a bit before showing alert
+                            setTimeout(function() {
+                                let storage = '';
+                                for (let i = 0; i < sessionStorage.length; i++) {
+                                    const key = sessionStorage.key(i);
+                                    storage += `${key}: ${sessionStorage.getItem(key)}\n`;
+                                }
+                                alert(storage);
+                            }, 300);
+                        }).catch(error => {
+                            console.error('Error playing button sound:', error);
+                            // Show alert anyway if sound fails
+                            let storage = '';
+                            for (let i = 0; i < sessionStorage.length; i++) {
+                                const key = sessionStorage.key(i);
+                                storage += `${key}: ${sessionStorage.getItem(key)}\n`;
+                            }
+                            alert(storage);
+                        });
+                    } else {
+                        // Fallback if play() doesn't return a promise
+                        setTimeout(function() {
+                            let storage = '';
+                            for (let i = 0; i < sessionStorage.length; i++) {
+                                const key = sessionStorage.key(i);
+                                storage += `${key}: ${sessionStorage.getItem(key)}\n`;
+                            }
+                            alert(storage);
+                        }, 300);
+                    }
+                });
+                
+                // If there's an error loading the sound, show alert anyway
+                clickSound.addEventListener('error', function() {
+                    console.error('Error loading button sound');
+                    let storage = '';
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        storage += `${key}: ${sessionStorage.getItem(key)}\n`;
+                    }
+                    alert(storage);
+                });
+                
+                // Start loading the sound
+                clickSound.load();
+            } else {
+                // If SoundManager is not available, just show alert
+                let storage = '';
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    storage += `${key}: ${sessionStorage.getItem(key)}\n`;
+                }
+                alert(storage);
+            }
         }
-        
+
+        // Function to change characters
         function changeCharacters() {
-            // Navigate back to player selection screen
-            window.location.href = 'playerselection.html';
+            console.log('Changing characters...');
+            
+            // Play click sound and navigate after it completes
+            if (window.SoundManager) {
+                // Create a new audio element specifically for this navigation
+                const clickSound = new Audio('../assests/audio/button_click.mp3');
+                clickSound.volume = 0.5;
+                
+                // When the sound can play, play it and set up navigation
+                clickSound.addEventListener('canplaythrough', function() {
+                    console.log('Navigation sound loaded, playing...');
+                    
+                    // Play the sound
+                    const playPromise = clickSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('Navigation sound played, waiting before redirect...');
+                            
+                            // Wait for the sound to play a bit before navigating
+                            setTimeout(function() {
+                                console.log('Navigating to player selection...');
+                                window.location.href = 'playerselection.html';
+                            }, 300);
+                        }).catch(error => {
+                            console.error('Error playing navigation sound:', error);
+                            // Navigate anyway if sound fails
+                            window.location.href = 'playerselection.html';
+                        });
+                    } else {
+                        // Fallback if play() doesn't return a promise
+                        setTimeout(function() {
+                            window.location.href = 'playerselection.html';
+                        }, 300);
+                    }
+                });
+                
+                // If there's an error loading the sound, navigate anyway
+                clickSound.addEventListener('error', function() {
+                    console.error('Error loading navigation sound');
+                    window.location.href = 'playerselection.html';
+                });
+                
+                // Start loading the sound
+                clickSound.load();
+            } else {
+                // If SoundManager is not available, just navigate
+                window.location.href = 'playerselection.html';
+            }
+        }
+
+        // Function to go back to map selection
+        function goToMapSelection() {
+            console.log('Going back to map selection...');
+            
+            // Play click sound and navigate after it completes
+            if (window.SoundManager) {
+                // Create a new audio element specifically for this navigation
+                const clickSound = new Audio('../assests/audio/button_click.mp3');
+                clickSound.volume = 0.5;
+                
+                // When the sound can play, play it and set up navigation
+                clickSound.addEventListener('canplaythrough', function() {
+                    console.log('Navigation sound loaded, playing...');
+                    
+                    // Play the sound
+                    const playPromise = clickSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('Navigation sound played, waiting before redirect...');
+                            
+                            // Wait for the sound to play a bit before navigating
+                            setTimeout(function() {
+                                console.log('Navigating to map selection...');
+                                window.location.href = 'maps.html';
+                            }, 300);
+                        }).catch(error => {
+                            console.error('Error playing navigation sound:', error);
+                            // Navigate anyway if sound fails
+                            window.location.href = 'maps.html';
+                        });
+                    } else {
+                        // Fallback if play() doesn't return a promise
+                        setTimeout(function() {
+                            window.location.href = 'maps.html';
+                        }, 300);
+                    }
+                });
+                
+                // If there's an error loading the sound, navigate anyway
+                clickSound.addEventListener('error', function() {
+                    console.error('Error loading navigation sound');
+                    window.location.href = 'maps.html';
+                });
+                
+                // Start loading the sound
+                clickSound.load();
+            } else {
+                // If SoundManager is not available, just navigate
+                window.location.href = 'maps.html';
+            }
         }
     </script>
     

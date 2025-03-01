@@ -550,7 +550,14 @@ function endGame() {
     const fightText = document.getElementById('fightText');
     if (fightText) {
         fightText.style.display = 'block';
-        fightText.textContent = gameState.winner === gameState.player1 ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!';
+        
+        // Get the winner's character ID
+        const winnerId = gameState.winner === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+        
+        // Format the winner message based on the character
+        const winnerName = formatCharacterName(winnerId);
+        fightText.textContent = `${winnerName} WINS!`;
+        
         fightText.style.transform = 'scale(1)';
         fightText.style.opacity = '1';
     }
@@ -640,17 +647,24 @@ function setupFighters(player1Id, player2Id) {
 }
 
 function formatCharacterName(id) {
-    // Convert character ID to a proper name
-    const names = {
-        'scorpion': 'SCORPION',
-        'subzero': 'SUB-ZERO',
-        'raiden': 'RAIDEN',
-        'liukang': 'LIU KANG',
-        'kitana': 'KITANA',
-        'johnnycage': 'JOHNNY CAGE'
-    };
-    
-    return names[id] || id.toUpperCase();
+    // Return the correct character name based on the character ID
+    switch(id) {
+        case 'scorpion':
+        case 'johnny':
+            return 'CURSE-OR';
+        case 'subzero':
+        case 'sonya':
+            return 'REIGN';
+        default:
+            // Fallback to original names if needed
+            const names = {
+                'raiden': 'RAIDEN',
+                'liukang': 'LIU KANG',
+                'kitana': 'KITANA',
+                'johnnycage': 'JOHNNY CAGE'
+            };
+            return names[id] || id.toUpperCase();
+    }
 }
 
 function setupGameTimer() {

@@ -1,0 +1,171 @@
+/* Base styles that apply to all pages */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #000;
+    color: white;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    padding: 10px 20px;
+    font-size: 18px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+/* Character Selection Screen Styles */
+#charSelect {
+    background: linear-gradient(to bottom, #000000, #1a1a1a);
+    min-height: 100vh;
+    padding: 20px;
+    color: white;
+    font-family: 'Arial', sans-serif;
+}
+
+.select-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.select-header h2 {
+    font-size: 48px;
+    color: #ff0000;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+    letter-spacing: 2px;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(to right, transparent, #ff000033, transparent);
+}
+
+/* Update the character selection layout styles */
+.character-select-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    height: 100vh;
+    padding: 20px;
+}
+
+.player-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+}
+
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    height: 80vh; /* Take up most of the viewport height */
+}
+
+.character-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    background: #222;
+    border: 2px solid #444;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.character-portrait {
+    position: relative;
+    width: 100%;
+    height: 85%; /* Leave room for character name */
+}
+
+.character-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-name {
+    height: 15%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    color: #fff;
+    font-size: 1.2vw;
+    text-transform: uppercase;
+}
+
+.vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    font-size: 4vw;
+    color: #ff0000;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+}
+
+.player-label {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.player-label h3 {
+    font-size: 2vw;
+    margin: 0;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.controls-hint {
+    font-size: 1vw;
+    color: #888;
+}
+
+/* Selected state */
+.character-card.selected {
+    border-color: #ff0000;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    transform: scale(1.05);
+}
+
+.character-card:hover {
+    transform: scale(1.05);
+    border-color: #666;
+}
+
+/* Fight button */
+#startFight {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 50px;
+    font-size: 24px;
+    background: #ff0000;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+#startFight:hover {
+    transform: translateX(-50%) scale(1.1);
+    background: #cc0000;
+}

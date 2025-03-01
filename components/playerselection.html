@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Selection - Mortal Kombat Clone</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/playerselection.css">
+</head>
+<body>
+    <div id="charSelect">
+        <div class="select-header">
+            <h2>Choose Your Fighter</h2>
+        </div>
+        
+        <div class="character-select-container">
+            <!-- Player 1 Side -->
+            <div class="player-side" id="player1Side">
+                <div class="player-label">
+                    <h3>Player 1</h3>
+                    <span class="controls-hint">WASD + JKL + U</span>
+                </div>
+                <div class="character-grid">
+                    <div class="character-card" onclick="selectCharacter(1, 'scorpion')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder1.png" alt="Scorpion">
+                        </div>
+                        <div class="character-name">Scorpion</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(1, 'subzero')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder2.png" alt="Sub-Zero">
+                        </div>
+                        <div class="character-name">Sub-Zero</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(1, 'reptile')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder3.png" alt="Reptile">
+                        </div>
+                        <div class="character-name">Reptile</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(1, 'raiden')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder4.png" alt="Raiden">
+                        </div>
+                        <div class="character-name">Raiden</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VS Divider -->
+            <div class="vs-divider">
+                <div class="vs-text">VS</div>
+            </div>
+
+            <!-- Player 2 Side -->
+            <div class="player-side" id="player2Side">
+                <div class="player-label">
+                    <h3>Player 2</h3>
+                    <span class="controls-hint">Arrows + 1,2,3,0</span>
+                </div>
+                <div class="character-grid">
+                    <div class="character-card" onclick="selectCharacter(2, 'johnny')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder5.png" alt="Johnny Cage">
+                        </div>
+                        <div class="character-name">Johnny Cage</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(2, 'sonya')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder6.png" alt="Sonya">
+                        </div>
+                        <div class="character-name">Sonya</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(2, 'jax')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder7.png" alt="Jax">
+                        </div>
+                        <div class="character-name">Jax</div>
+                    </div>
+                    <div class="character-card" onclick="selectCharacter(2, 'kunglao')">
+                        <div class="character-portrait">
+                            <img src="../assets/images/characters/placeholder8.png" alt="Kung Lao">
+                        </div>
+                        <div class="character-name">Kung Lao</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="startFight" style="display: none;">Ready!</button>
+        <div id="selectionMessage"></div>
+    </div>
+    <script src="../js/playerselection.js"></script>
+</body>
+</html>

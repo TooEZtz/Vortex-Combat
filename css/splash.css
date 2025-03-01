@@ -1,0 +1,180 @@
+/* Splash Screen Styles */
+#splashScreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(20,20,20,0.9) 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Title styling */
+#splashScreen h1 {
+  font-size: 84px;
+  font-family: 'Arial Black', sans-serif;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 30px;
+  position: relative;
+  animation: titleGlow 3s infinite;
+}
+
+#splashScreen h1::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -20%;
+  right: -20%;
+  height: 5px;
+  background: linear-gradient(90deg, 
+      transparent 0%, 
+      rgba(255,0,0,0.8) 50%, 
+      transparent 100%);
+  transform: translateY(-50%);
+  animation: lineMove 3s infinite;
+}
+
+/* Press Enter text */
+#splashScreen p {
+  font-size: 28px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  animation: pulse 2s infinite;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+  margin-top: 50px;
+}
+
+/* Background effects */
+.bg-effects {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+      radial-gradient(circle at 30% 30%, rgba(255,0,0,0.1) 0%, transparent 60%),
+      radial-gradient(circle at 70% 70%, rgba(0,0,255,0.1) 0%, transparent 60%);
+  z-index: 1;
+}
+
+/* Dragon logo placeholder */
+.dragon-logo {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  opacity: 0.2;
+  background: url('../assets/images/dragon-placeholder.png') center/contain no-repeat;
+  animation: rotateLogo 20s infinite linear;
+}
+
+.dragon-logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, rgba(255,0,0,0.2) 0%, transparent 70%);
+  animation: glowPulse 4s infinite;
+}
+
+/* Animations */
+@keyframes titleGlow {
+  0%, 100% {
+      text-shadow: 
+          0 0 20px rgba(255,0,0,0.7),
+          0 0 40px rgba(255,0,0,0.5),
+          0 0 60px rgba(255,0,0,0.3);
+  }
+  50% {
+      text-shadow: 
+          0 0 30px rgba(255,0,0,0.9),
+          0 0 60px rgba(255,0,0,0.7),
+          0 0 90px rgba(255,0,0,0.5);
+  }
+}
+
+@keyframes lineMove {
+  0%, 100% {
+      transform: translateY(-50%) scaleX(0.8);
+      opacity: 0.5;
+  }
+  50% {
+      transform: translateY(-50%) scaleX(1);
+      opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+      opacity: 0.5;
+      transform: scale(1);
+  }
+  50% {
+      opacity: 1;
+      transform: scale(1.05);
+  }
+}
+
+@keyframes rotateLogo {
+  from {
+      transform: rotate(0deg);
+  }
+  to {
+      transform: rotate(360deg);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+      opacity: 0.2;
+  }
+  50% {
+      opacity: 0.4;
+  }
+}
+
+/* Fire effect at the bottom */
+.fire-effect {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(0deg, 
+      rgba(255,0,0,0.2) 0%,
+      transparent 100%);
+  animation: fireFlicker 3s infinite;
+}
+
+@keyframes fireFlicker {
+  0%, 100% {
+      opacity: 0.5;
+      height: 100px;
+  }
+  50% {
+      opacity: 0.7;
+      height: 120px;
+  }
+}
+
+/* Add responsive design */
+@media (max-width: 768px) {
+  #splashScreen h1 {
+      font-size: 48px;
+  }
+  
+  #splashScreen p {
+      font-size: 20px;
+  }
+  
+  .dragon-logo {
+      width: 150px;
+      height: 150px;
+  }
+}

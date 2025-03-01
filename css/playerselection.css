@@ -1,0 +1,245 @@
+/* Character Selection Screen Styles */
+#charSelect {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.select-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.select-header h2 {
+  font-size: 48px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  margin: 20px 0;
+}
+
+/* Main container for character selection */
+.character-select-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  padding: 20px;
+  gap: 40px;
+}
+
+/* Player sides styling */
+.player-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.8);
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 600px;
+}
+
+.player-label {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 5px;
+}
+
+.player-label h3 {
+  font-size: 24px;
+  color: #fff;
+  text-transform: uppercase;
+  margin: 0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.controls-hint {
+  font-size: 14px;
+  color: #888;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Character grid layout */
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+/* Character card styling */
+.character-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: #1a1a1a;
+  border: 3px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.character-card:hover {
+  border-color: #666;
+  transform: translateY(-5px);
+}
+
+.character-portrait {
+  width: 100%;
+  height: 85%;
+  position: relative;
+  overflow: hidden;
+}
+
+.character-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #2a2a2a;
+}
+
+.character-name {
+  height: 15%;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* VS divider styling */
+.vs-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.vs-text {
+  font-size: 72px;
+  font-weight: bold;
+  color: #ff0000;
+  text-shadow: 
+      0 0 10px rgba(255, 0, 0, 0.7),
+      0 0 20px rgba(255, 0, 0, 0.5);
+  animation: vsGlow 2s infinite;
+}
+
+/* Selected state styling */
+.character-card.selected {
+  border-color: #ff0000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.character-card.selected .character-name {
+  background: #ff0000;
+}
+
+/* Fight button styling */
+#startFight {
+  display: none;
+  margin: 30px auto 0;
+  padding: 15px 60px;
+  font-size: 36px;
+  background: #ff0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: buttonFadeIn 0.5s forwards;
+}
+
+#startFight:hover {
+  transform: scale(1.1);
+  background: #cc0000;
+}
+
+/* Selection message styling */
+#selectionMessage {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 18px;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  z-index: 1000;
+}
+
+/* Animations */
+@keyframes vsGlow {
+  0%, 100% {
+      text-shadow: 
+          0 0 10px rgba(255, 0, 0, 0.7),
+          0 0 20px rgba(255, 0, 0, 0.5);
+  }
+  50% {
+      text-shadow: 
+          0 0 20px rgba(255, 0, 0, 0.9),
+          0 0 40px rgba(255, 0, 0, 0.7);
+  }
+}
+
+@keyframes buttonFadeIn {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .character-select-container {
+      padding: 10px;
+      gap: 20px;
+  }
+
+  .character-grid {
+      gap: 10px;
+  }
+
+  .vs-text {
+      font-size: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .player-label h3 {
+      font-size: 18px;
+  }
+
+  .character-name {
+      font-size: 14px;
+  }
+
+  .vs-text {
+      font-size: 36px;
+  }
+}

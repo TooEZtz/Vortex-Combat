@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Final Player 1:', finalPlayer1);
     console.log('Final Player 2:', finalPlayer2);
     
+    // Add debug overlay
+    createDebugOverlay();
+    
     // Set up the background
     const backgroundContainer = document.getElementById('background-container');
     
@@ -55,7 +58,7 @@ let gameState = {
         health: 100,
         position: 200,
         isJumping: false,
-        isDucking: false,
+        isGuarding: false,
         isAttacking: false,
         attackType: null,
         direction: 1, // 1 = right, -1 = left
@@ -67,7 +70,7 @@ let gameState = {
         health: 100,
         position: 800,
         isJumping: false,
-        isDucking: false,
+        isGuarding: false,
         isAttacking: false,
         attackType: null,
         direction: -1, // 1 = right, -1 = left
@@ -87,7 +90,7 @@ let gameState = {
             left: false,
             right: false,
             jump: false,
-            duck: false,
+            guard: false,
             punch: false,
             kick: false
         },
@@ -95,7 +98,7 @@ let gameState = {
             left: false,
             right: false,
             jump: false,
-            duck: false,
+            guard: false,
             punch: false,
             kick: false
         }
@@ -125,13 +128,15 @@ function initGameEngine(player1Character, player2Character) {
         gameState.arena.width = fightArena.offsetWidth;
         gameState.arena.boundaries.left = gameState.arena.width * 0.1;
         gameState.arena.boundaries.right = gameState.arena.width * 0.9;
+        console.log('Arena width:', gameState.arena.width);
+        console.log('Arena boundaries:', gameState.arena.boundaries);
     }
     
     // Set up player elements
     gameState.player1.element = document.getElementById('player1');
     gameState.player2.element = document.getElementById('player2');
-    gameState.player1.healthBar = document.querySelector('#player1 .health-bar');
-    gameState.player2.healthBar = document.querySelector('#player2 .health-bar');
+    gameState.player1.healthBar = document.querySelector('#player1-health .health-bar');
+    gameState.player2.healthBar = document.querySelector('#player2-health .health-bar');
     
     // Set character data
     gameState.player1.character = player1Character;
@@ -140,6 +145,18 @@ function initGameEngine(player1Character, player2Character) {
     // Set initial positions
     gameState.player1.position = gameState.arena.width * 0.3;
     gameState.player2.position = gameState.arena.width * 0.7;
+    
+    // Apply initial positions to DOM
+    if (gameState.player1.element) {
+        gameState.player1.element.style.left = gameState.player1.position + 'px';
+    }
+    if (gameState.player2.element) {
+        gameState.player2.element.style.left = gameState.player2.position + 'px';
+    }
+    
+    console.log('Initial positions set:', 
+                gameState.player1.position, 
+                gameState.player2.position);
     
     // Set up keyboard controls
     setupControls();
@@ -186,7 +203,7 @@ function handleKeyDown(e) {
             recordSpecialMoveKey(gameState.player1, 'right');
             break;
         case 's': 
-            gameState.keys.player1.duck = true; 
+            gameState.keys.player1.guard = true; 
             recordSpecialMoveKey(gameState.player1, 'down');
             break;
         case 'f': 
@@ -214,7 +231,7 @@ function handleKeyDown(e) {
             recordSpecialMoveKey(gameState.player2, 'right');
             break;
         case 'ArrowDown': 
-            gameState.keys.player2.duck = true; 
+            gameState.keys.player2.guard = true; 
             recordSpecialMoveKey(gameState.player2, 'down');
             break;
         case 'k': 
@@ -234,7 +251,7 @@ function handleKeyUp(e) {
         case 'w': gameState.keys.player1.jump = false; break;
         case 'a': gameState.keys.player1.left = false; break;
         case 'd': gameState.keys.player1.right = false; break;
-        case 's': gameState.keys.player1.duck = false; break;
+        case 's': gameState.keys.player1.guard = false; break;
         case 'f': gameState.keys.player1.punch = false; break;
         case 'g': gameState.keys.player1.kick = false; break;
     }
@@ -244,7 +261,7 @@ function handleKeyUp(e) {
         case 'ArrowUp': gameState.keys.player2.jump = false; break;
         case 'ArrowLeft': gameState.keys.player2.left = false; break;
         case 'ArrowRight': gameState.keys.player2.right = false; break;
-        case 'ArrowDown': gameState.keys.player2.duck = false; break;
+        case 'ArrowDown': gameState.keys.player2.guard = false; break;
         case 'k': gameState.keys.player2.punch = false; break;
         case 'l': gameState.keys.player2.kick = false; break;
     }
@@ -284,15 +301,15 @@ function processInput() {
     if (gameState.keys.player1.jump && !gameState.player1.isJumping) {
         jumpPlayer(gameState.player1);
     }
-    if (gameState.keys.player1.duck) {
-        duckPlayer(gameState.player1);
-    } else if (gameState.player1.isDucking) {
-        standPlayer(gameState.player1);
+    if (gameState.keys.player1.guard) {
+        guardPlayer(gameState.player1);
+    } else if (gameState.player1.isGuarding) {
+        stopGuardPlayer(gameState.player1);
     }
-    if (gameState.keys.player1.punch && !gameState.player1.isAttacking) {
+    if (gameState.keys.player1.punch && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
         attackPlayer(gameState.player1, 'punch');
     }
-    if (gameState.keys.player1.kick && !gameState.player1.isAttacking) {
+    if (gameState.keys.player1.kick && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
         attackPlayer(gameState.player1, 'kick');
     }
     
@@ -306,21 +323,22 @@ function processInput() {
     if (gameState.keys.player2.jump && !gameState.player2.isJumping) {
         jumpPlayer(gameState.player2);
     }
-    if (gameState.keys.player2.duck) {
-        duckPlayer(gameState.player2);
-    } else if (gameState.player2.isDucking) {
-        standPlayer(gameState.player2);
+    if (gameState.keys.player2.guard) {
+        guardPlayer(gameState.player2);
+    } else if (gameState.player2.isGuarding) {
+        stopGuardPlayer(gameState.player2);
     }
-    if (gameState.keys.player2.punch && !gameState.player2.isAttacking) {
+    if (gameState.keys.player2.punch && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
         attackPlayer(gameState.player2, 'punch');
     }
-    if (gameState.keys.player2.kick && !gameState.player2.isAttacking) {
+    if (gameState.keys.player2.kick && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
         attackPlayer(gameState.player2, 'kick');
     }
 }
 
 function movePlayer(player, direction) {
     // Update player position
+    const oldPosition = player.position;
     player.position += direction * 5;
     
     // Keep player within boundaries
@@ -331,8 +349,16 @@ function movePlayer(player, direction) {
         player.position = gameState.arena.boundaries.right;
     }
     
+    // Log position change
+    console.log(`Player moved: ${oldPosition} -> ${player.position}, direction: ${direction}`);
+    
     // Update player direction
     player.direction = direction;
+    
+    // Apply position immediately
+    if (player.element) {
+        player.element.style.left = player.position + 'px';
+    }
 }
 
 function jumpPlayer(player) {
@@ -341,6 +367,9 @@ function jumpPlayer(player) {
     // Add jump animation class
     if (player.element) {
         player.element.classList.add('jumping');
+        
+        // Force a reflow to restart the animation if it's already applied
+        void player.element.offsetWidth;
     }
     
     // Reset jump after animation
@@ -352,21 +381,24 @@ function jumpPlayer(player) {
     }, 500);
 }
 
-function duckPlayer(player) {
-    player.isDucking = true;
+function guardPlayer(player) {
+    player.isGuarding = true;
     
-    // Add duck animation class
+    // Add guard animation class
     if (player.element) {
-        player.element.classList.add('ducking');
+        player.element.classList.add('guarding');
+        
+        // Force a reflow to restart the animation if it's already applied
+        void player.element.offsetWidth;
     }
 }
 
-function standPlayer(player) {
-    player.isDucking = false;
+function stopGuardPlayer(player) {
+    player.isGuarding = false;
     
-    // Remove duck animation class
+    // Remove guard animation class
     if (player.element) {
-        player.element.classList.remove('ducking');
+        player.element.classList.remove('guarding');
     }
 }
 
@@ -377,6 +409,9 @@ function attackPlayer(player, attackType) {
     // Add attack animation class
     if (player.element) {
         player.element.classList.add(attackType);
+        
+        // Force a reflow to restart the animation if it's already applied
+        void player.element.offsetWidth;
     }
     
     // Check for hit
@@ -399,20 +434,38 @@ function checkHit(attacker) {
     // Calculate distance between players
     const distance = Math.abs(attacker.position - defender.position);
     
-    // Check if players are close enough for a hit
-    if (distance < 150) {
+    // Check if players are close enough for a hit (increased range from 150 to 250)
+    if (distance < 250) {
         // Check if defender is jumping (can't be hit while jumping)
         if (!defender.isJumping) {
-            // Check if defender is ducking (can only be hit by kicks when ducking)
-            if (!defender.isDucking || attacker.attackType === 'kick') {
+            // Check if defender is guarding
+            if (!defender.isGuarding) {
                 // Hit landed!
                 applyDamage(defender, attacker.attackType === 'punch' ? 10 : 15);
                 
                 // Show hit effect
                 showHitEffect(defender);
+            } else {
+                // Defender is guarding - show blocked effect
+                showBlockedEffect(defender);
             }
         }
     }
+}
+
+function showBlockedEffect(player) {
+    // Add blocked animation class
+    if (player.element) {
+        player.element.classList.add('blocked');
+        
+        // Remove blocked animation class after a short delay
+        setTimeout(() => {
+            player.element.classList.remove('blocked');
+        }, 200);
+    }
+    
+    // Play block sound
+    playSound('hit');
 }
 
 function applyDamage(player, amount) {
@@ -421,9 +474,7 @@ function applyDamage(player, amount) {
     if (player.health < 0) player.health = 0;
     
     // Update health bar
-    if (player.healthBar) {
-        player.healthBar.style.width = player.health + '%';
-    }
+    updateHealthBar(player);
     
     // Check for knockout
     if (player.health <= 0) {
@@ -458,9 +509,11 @@ function updateGameState() {
     // Update player positions
     if (gameState.player1.element) {
         gameState.player1.element.style.left = gameState.player1.position + 'px';
+        console.log('Player 1 position:', gameState.player1.position);
     }
     if (gameState.player2.element) {
         gameState.player2.element.style.left = gameState.player2.position + 'px';
+        console.log('Player 2 position:', gameState.player2.position);
     }
     
     // Update player directions (flip sprites)
@@ -476,8 +529,8 @@ function updateGameState() {
 }
 
 function renderGame() {
-    // This function would handle any additional rendering
-    // Most of our rendering is done with CSS classes and styles
+    // Update debug overlay
+    updateDebugOverlay();
 }
 
 function endGame() {
@@ -568,19 +621,34 @@ function setupFighters(player1Id, player2Id) {
         const player1Name = document.querySelector('#player1 .fighter-name');
         const player1Image = document.querySelector('#player1 .fighter-image');
         
-        // Set player 1 name and image
+        // Set player 1 name
         player1Name.textContent = formatCharacterName(player1Id);
-        player1Image.style.backgroundImage = `url(../assets/images/characters/${player1Id}.png)`;
+        
+        // Add character name to the box
+        player1Image.textContent = formatCharacterName(player1Id).charAt(0);
+        
+        // Set initial position
+        player1Element.style.left = '200px';
     }
     
     if (player2Element) {
         const player2Name = document.querySelector('#player2 .fighter-name');
         const player2Image = document.querySelector('#player2 .fighter-image');
         
-        // Set player 2 name and image
+        // Set player 2 name
         player2Name.textContent = formatCharacterName(player2Id);
-        player2Image.style.backgroundImage = `url(../assets/images/characters/${player2Id}.png)`;
+        
+        // Add character name to the box
+        player2Image.textContent = formatCharacterName(player2Id).charAt(0);
+        
+        // Set initial position
+        player2Element.style.left = '800px';
     }
+    
+    // Log that fighters are set up
+    console.log('Fighters set up with positions:', 
+                player1Element.style.left, 
+                player2Element.style.left);
 }
 
 function formatCharacterName(id) {
@@ -736,13 +804,19 @@ function executeSpecialMove(player, move) {
     // Calculate distance between players
     const distance = Math.abs(player.position - opponent.position);
     
-    // Check if players are close enough for a hit (special moves have longer range)
-    if (distance < 300) {
-        // Apply damage to opponent
-        applyDamage(opponent, move.damage);
-        
-        // Show hit effect
-        showHitEffect(opponent);
+    // Check if players are close enough for a hit (special moves have longer range - increased from 300 to 400)
+    if (distance < 400) {
+        // Check if opponent is guarding
+        if (!opponent.isGuarding) {
+            // Apply damage to opponent
+            applyDamage(opponent, move.damage);
+            
+            // Show hit effect
+            showHitEffect(opponent);
+        } else {
+            // Opponent is guarding - show blocked effect
+            showBlockedEffect(opponent);
+        }
     }
 }
 
@@ -760,5 +834,82 @@ function showSpecialMoveName(player, moveName) {
         setTimeout(() => {
             specialMoveElement.remove();
         }, 1500);
+    }
+}
+
+function createDebugOverlay() {
+    // Create debug overlay
+    const debugOverlay = document.createElement('div');
+    debugOverlay.id = 'debugOverlay';
+    debugOverlay.style.position = 'fixed';
+    debugOverlay.style.top = '10px';
+    debugOverlay.style.right = '10px';
+    debugOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    debugOverlay.style.color = '#fff';
+    debugOverlay.style.padding = '10px';
+    debugOverlay.style.borderRadius = '5px';
+    debugOverlay.style.zIndex = '1000';
+    debugOverlay.style.fontSize = '12px';
+    debugOverlay.style.maxWidth = '300px';
+    
+    document.body.appendChild(debugOverlay);
+}
+
+function updateDebugOverlay() {
+    const debugOverlay = document.getElementById('debugOverlay');
+    if (!debugOverlay) return;
+    
+    // Format game state for display
+    const p1 = gameState.player1;
+    const p2 = gameState.player2;
+    
+    const debugInfo = `
+        <h3>Debug Info</h3>
+        <p><strong>Player 1:</strong> ${p1.character}</p>
+        <p>Position: ${Math.round(p1.position)}</p>
+        <p>Health: ${p1.health}</p>
+        <p>State: ${getPlayerStateText(p1)}</p>
+        <hr>
+        <p><strong>Player 2:</strong> ${p2.character}</p>
+        <p>Position: ${Math.round(p2.position)}</p>
+        <p>Health: ${p2.health}</p>
+        <p>State: ${getPlayerStateText(p2)}</p>
+        <hr>
+        <p>Arena width: ${gameState.arena.width}</p>
+        <p>Left boundary: ${gameState.arena.boundaries.left}</p>
+        <p>Right boundary: ${gameState.arena.boundaries.right}</p>
+        <hr>
+        <p>Keys: ${getActiveKeysText()}</p>
+    `;
+    
+    debugOverlay.innerHTML = debugInfo;
+}
+
+function getPlayerStateText(player) {
+    let state = [];
+    if (player.isJumping) state.push('Jumping');
+    if (player.isGuarding) state.push('Guarding');
+    if (player.isAttacking) state.push(player.attackType);
+    
+    return state.length > 0 ? state.join(', ') : 'Standing';
+}
+
+function getActiveKeysText() {
+    const p1Keys = Object.entries(gameState.keys.player1)
+        .filter(([_, value]) => value)
+        .map(([key]) => key);
+    
+    const p2Keys = Object.entries(gameState.keys.player2)
+        .filter(([_, value]) => value)
+        .map(([key]) => key);
+    
+    return `P1: ${p1Keys.join(',')} | P2: ${p2Keys.join(',')}`;
+}
+
+function updateHealthBar(player) {
+    // Update health bar with percentage
+    if (player.healthBar) {
+        player.healthBar.style.width = player.health + '%';
+        player.healthBar.textContent = Math.round(player.health) + '%';
     }
 }

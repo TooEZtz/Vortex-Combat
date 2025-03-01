@@ -16,14 +16,28 @@
             <div class="timer">60</div>
         </div>
         
+        <!-- New health bars at the top -->
+        <div class="health-bars">
+            <div id="player1-health" class="player-health">
+                <div class="player-health-name">PLAYER 1</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" style="width: 100%;">100%</div>
+                </div>
+            </div>
+            
+            <div id="player2-health" class="player-health">
+                <div class="player-health-name">PLAYER 2</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" style="width: 100%;">100%</div>
+                </div>
+            </div>
+        </div>
+        
         <div id="fightArena">
             <div id="player1" class="fighter">
                 <div class="fighter-name">PLAYER 1</div>
-                <div class="health-bar-container">
-                    <div class="health-bar" style="width: 100%;"></div>
-                </div>
                 <div class="fighter-image">
-                    <!-- Player 1 image will be set by JavaScript -->
+                    P1
                 </div>
             </div>
             
@@ -34,11 +48,8 @@
             
             <div id="player2" class="fighter">
                 <div class="fighter-name">PLAYER 2</div>
-                <div class="health-bar-container">
-                    <div class="health-bar" style="width: 100%;"></div>
-                </div>
                 <div class="fighter-image">
-                    <!-- Player 2 image will be set by JavaScript -->
+                    P2
                 </div>
             </div>
         </div>
@@ -50,7 +61,7 @@
                     <p>W - Jump</p>
                     <p>A - Move Left</p>
                     <p>D - Move Right</p>
-                    <p>S - Duck</p>
+                    <p>S - Guard</p>
                     <p>F - Punch</p>
                     <p>G - Kick</p>
                 </div>
@@ -60,7 +71,7 @@
                     <p>↑ - Jump</p>
                     <p>← - Move Left</p>
                     <p>→ - Move Right</p>
-                    <p>↓ - Duck</p>
+                    <p>↓ - Guard</p>
                     <p>K - Punch</p>
                     <p>L - Kick</p>
                 </div>

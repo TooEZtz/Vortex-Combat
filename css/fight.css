@@ -1,56 +1,393 @@
-#fightScreen {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
+body {
+  margin: 0;
+  padding: 0;
   overflow: hidden;
+  font-family: 'Arial', sans-serif;
+  background: #000;
+  color: #fff;
 }
 
-#gameCanvas {
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(3px) brightness(0.6);
+  transform: scale(1.05);
 }
 
-#playerInfo {
-  position: absolute;
-  top: 20px;
-  left: 0;
-  right: 0;
+#fightScreen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+#fightHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  margin-bottom: 20px;
 }
 
-.player-hud {
+.round-info {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff0000;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+}
+
+.timer {
+  font-size: 36px;
+  font-weight: bold;
+  color: #fff;
+  background: rgba(255, 0, 0, 0.7);
+  padding: 5px 15px;
+  border-radius: 5px;
+}
+
+#fightArena {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  padding: 20px;
+}
+
+.fighter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 300px;
+  position: absolute;
+  bottom: 100px;
+  transition: transform 0.1s ease;
+}
+
+.fighter-left {
+  transform: scaleX(-1); /* Flip player 1 to face right */
+}
+
+.fighter.facing-left {
+  transform: scaleX(-1);
+}
+
+.fighter-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  position: absolute;
+  top: -40px;
+  width: 100%;
+  text-align: center;
+}
+
+.fighter-image {
+  width: 200px;
+  height: 300px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+}
+
+.health-bar-container {
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  position: absolute;
+  top: -70px;
+}
+
+.fighter-left .health-bar-container {
+  direction: rtl; /* Make player 1's health bar decrease from right to left */
 }
 
 .health-bar {
-  height: 30px;
-  background: #333;
-  border: 2px solid #fff;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.health-fill {
-  width: 100%;
   height: 100%;
-  background: #ff0000;
+  background: linear-gradient(to right, #ff0000, #ff6b6b);
   transition: width 0.3s ease;
 }
 
-.player-name {
-  color: white;
-  text-align: center;
-  margin-top: 5px;
-  font-size: 20px;
-  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+#fightStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-#timer {
-  font-size: 48px;
+#fightText {
+  font-size: 72px;
+  font-weight: bold;
+  color: #ff0000;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.9);
+  animation: pulse 2s infinite;
+}
+
+#vsText {
+  font-size: 36px;
+  font-weight: bold;
+  color: #fff;
+  margin-top: 10px;
+}
+
+#controls {
+  margin-top: 30px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.control-instructions {
+  display: flex;
+  justify-content: space-around;
+}
+
+.player1-controls, .player2-controls {
+  text-align: center;
+}
+
+.player1-controls h3, .player2-controls h3 {
+  color: #ff0000;
+  margin-bottom: 10px;
+}
+
+.player1-controls p, .player2-controls p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.debug-controls {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.debug-controls button {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #666;
+  color: #999;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin: 0 5px;
+}
+
+.debug-controls button:hover {
+  background: rgba(50, 50, 50, 0.7);
+  color: #fff;
+}
+
+#changeCharactersButton {
+  background: rgba(100, 0, 0, 0.7);
+  border-color: #900;
+  color: #ccc;
+}
+
+#changeCharactersButton:hover {
+  background: rgba(150, 0, 0, 0.7);
+  color: #fff;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Fighting animations */
+@keyframes jump {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-100px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes punch {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(20px); }
+  50% { transform: translateX(30px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes kick {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(30deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes hit {
+  0% { filter: brightness(1); transform: translateX(0); }
+  25% { filter: brightness(2); transform: translateX(-10px); }
+  50% { filter: brightness(2); transform: translateX(10px); }
+  75% { filter: brightness(2); transform: translateX(-5px); }
+  100% { filter: brightness(1); transform: translateX(0); }
+}
+
+@keyframes duck {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0.7); }
+}
+
+/* Apply animations to fighter states */
+.fighter.jumping .fighter-image {
+  animation: jump 0.5s ease;
+}
+
+.fighter.punch .fighter-image {
+  animation: punch 0.3s ease;
+}
+
+.fighter.kick .fighter-image {
+  animation: kick 0.3s ease;
+}
+
+.fighter.hit .fighter-image {
+  animation: hit 0.2s ease;
+}
+
+.fighter.ducking .fighter-image {
+  transform: scaleY(0.7) translateY(30%);
+}
+
+/* Game over screen */
+#replayButton {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 30px;
+  font-size: 24px;
+  background: #ff0000;
   color: white;
-  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+#replayButton:hover {
+  transform: scale(1.1);
+  background: #cc0000;
+}
+
+/* Special moves animations */
+@keyframes spear {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(50px); filter: brightness(1.5); }
+  50% { transform: translateX(100px); filter: brightness(2); }
+  75% { transform: translateX(50px); filter: brightness(1.5); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes firebreath {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.5) hue-rotate(30deg); }
+  50% { filter: brightness(2) hue-rotate(60deg); }
+  75% { filter: brightness(1.5) hue-rotate(30deg); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes iceball {
+  0% { filter: brightness(1); }
+  25% { filter: brightness(1.5) hue-rotate(180deg); }
+  50% { filter: brightness(2) hue-rotate(210deg); }
+  75% { filter: brightness(1.5) hue-rotate(180deg); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes slide {
+  0% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(30px) translateX(100px); }
+  100% { transform: translateY(0) translateX(0); }
+}
+
+@keyframes superpunch {
+  0% { transform: scale(1); }
+  10% { transform: scale(1.1); }
+  20% { transform: scale(1.2); }
+  30% { transform: scale(1.3); }
+  40% { transform: scale(1.2); }
+  50% { transform: scale(1.1); }
+  60% { transform: translateX(50px) scale(1.1); }
+  70% { transform: translateX(100px) scale(1.2); }
+  80% { transform: translateX(50px) scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes superkick {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(30deg) scale(1.2); }
+  75% { transform: rotate(45deg) scale(1.3); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Apply special move animations */
+.fighter.spear .fighter-image {
+  animation: spear 1s ease;
+}
+
+.fighter.firebreath .fighter-image {
+  animation: firebreath 1s ease;
+}
+
+.fighter.iceball .fighter-image {
+  animation: iceball 1s ease;
+}
+
+.fighter.slide .fighter-image {
+  animation: slide 1s ease;
+}
+
+.fighter.superpunch .fighter-image {
+  animation: superpunch 1s ease;
+}
+
+.fighter.superkick .fighter-image {
+  animation: superkick 1s ease;
+}
+
+/* Special move name display */
+.special-move-name {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffff00;
+  text-shadow: 0 0 10px #ff0000;
+  animation: fadeInOut 1.5s ease;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(20px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
 }

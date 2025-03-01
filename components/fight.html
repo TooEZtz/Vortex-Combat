@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIGHT!</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/fight.css">
+</head>
+<body>
+    <div id="background-container" class="background-container"></div>
+    
+    <div id="fightScreen">
+        <div id="fightHeader">
+            <div class="round-info">ROUND 1</div>
+            <div class="timer">60</div>
+        </div>
+        
+        <div id="fightArena">
+            <div id="player1" class="fighter">
+                <div class="fighter-name">PLAYER 1</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" style="width: 100%;"></div>
+                </div>
+                <div class="fighter-image">
+                    <!-- Player 1 image will be set by JavaScript -->
+                </div>
+            </div>
+            
+            <div id="fightStatus">
+                <div id="fightText">FIGHT!</div>
+                <div id="vsText">VS</div>
+            </div>
+            
+            <div id="player2" class="fighter">
+                <div class="fighter-name">PLAYER 2</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" style="width: 100%;"></div>
+                </div>
+                <div class="fighter-image">
+                    <!-- Player 2 image will be set by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <div class="control-instructions">
+                <div class="player1-controls">
+                    <h3>PLAYER 1</h3>
+                    <p>W - Jump</p>
+                    <p>A - Move Left</p>
+                    <p>D - Move Right</p>
+                    <p>S - Duck</p>
+                    <p>F - Punch</p>
+                    <p>G - Kick</p>
+                </div>
+                
+                <div class="player2-controls">
+                    <h3>PLAYER 2</h3>
+                    <p>↑ - Jump</p>
+                    <p>← - Move Left</p>
+                    <p>→ - Move Right</p>
+                    <p>↓ - Duck</p>
+                    <p>K - Punch</p>
+                    <p>L - Kick</p>
+                </div>
+            </div>
+            
+            <div class="debug-controls">
+                <button id="debugButton" onclick="showSessionStorage()">Debug Session Storage</button>
+                <button id="changeCharactersButton" onclick="changeCharacters()">Change Characters</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sound effects -->
+    <audio id="hitSound" src="../assets/sounds/hit.mp3" preload="auto"></audio>
+    <audio id="victorySound" src="../assets/sounds/victory.mp3" preload="auto"></audio>
+    
+    <script>
+        function showSessionStorage() {
+            const sessionData = {
+                map: sessionStorage.getItem('selectedMap'),
+                player1: sessionStorage.getItem('player1Character'),
+                player2: sessionStorage.getItem('player2Character')
+            };
+            
+            alert('Session Storage Data:\n' + 
+                  'Map: ' + sessionData.map + '\n' +
+                  'Player 1: ' + sessionData.player1 + '\n' +
+                  'Player 2: ' + sessionData.player2);
+            
+            console.log('Session Storage Data:', sessionData);
+        }
+        
+        function changeCharacters() {
+            // Navigate back to player selection screen
+            window.location.href = 'playerselection.html';
+        }
+    </script>
+    
+    <script src="../js/fight.js"></script>
+</body>
+</html> 

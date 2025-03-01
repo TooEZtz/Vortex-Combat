@@ -109,6 +109,9 @@ function showMessage(message) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, initializing...');
     
+    // Create placeholder images
+    createPlaceholderImages();
+    
     // Set up fight button
     const startFight = document.getElementById('startFight');
     if (startFight) {
@@ -118,7 +121,17 @@ document.addEventListener('DOMContentLoaded', function() {
         startFight.addEventListener('click', function() {
             if (selectedCharacters.player1 && selectedCharacters.player2) {
                 console.log("Starting fight with:", selectedCharacters);
-                // Add transition to next screen here
+                
+                // Store selected characters in session storage
+                sessionStorage.setItem('player1Character', selectedCharacters.player1);
+                sessionStorage.setItem('player2Character', selectedCharacters.player2);
+                
+                console.log('Player selections stored in session storage:',
+                    sessionStorage.getItem('player1Character'),
+                    sessionStorage.getItem('player2Character'));
+                
+                // Navigate to map selection screen
+                window.location.href = 'maps.html';
             }
         });
     }

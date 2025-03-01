@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Battle Arena</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/maps.css">
+</head>
+<body>
+    <div class="background-container"></div>
+    
+    <div id="mapSelect">
+        <div class="select-header">
+            <h2>CHOOSE YOUR ARENA</h2>
+        </div>
+        
+        <div class="maps-grid">
+            <div class="map-card" data-map="temple">
+                <div class="map-preview">
+                    <img src="../assets/images/maps/temple.png" alt="Temple">
+                </div>
+                <div class="map-info">
+                    <h3>SHAOLIN TEMPLE</h3>
+                    <p>Ancient grounds of combat</p>
+                </div>
+            </div>
+
+            <div class="map-card" data-map="palace">
+                <div class="map-preview">
+                    <img src="../assets/images/maps/palace.png" alt="Palace">
+                </div>
+                <div class="map-info">
+                    <h3>OUTWORLD PALACE</h3>
+                    <p>Throne of the emperor</p>
+                </div>
+            </div>
+
+            <div class="map-card" data-map="pit">
+                <div class="map-preview">
+                    <img src="../assets/images/maps/pit.png" alt="The Pit">
+                </div>
+                <div class="map-info">
+                    <h3>THE PIT</h3>
+                    <p>No mercy, only death</p>
+                </div>
+            </div>
+
+            <div class="map-card" data-map="bridge">
+                <div class="map-preview">
+                    <img src="../assets/images/maps/bridge.png" alt="Bridge">
+                </div>
+                <div class="map-info">
+                    <h3>DEAD POOL</h3>
+                    <p>Bridge of destiny</p>
+                </div>
+            </div>
+        </div>
+
+        <button id="startFight">FIGHT!</button>
+    </div>
+    <script src="../js/map.js"></script>
+</body>
+</html>

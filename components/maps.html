@@ -77,5 +77,34 @@
         </div>
     </div>
     <script src="../js/map.js"></script>
+    <script>
+        // Ensure audio is initialized properly
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add a click handler to the document to enable audio
+            const initAudio = function() {
+                console.log('User interaction detected, initializing audio...');
+                
+                // Start background music
+                if (window.SoundManager) {
+                    SoundManager.playBackgroundMusic('mapSelect');
+                }
+                
+                // Remove this event listener
+                document.removeEventListener('click', initAudio);
+                document.removeEventListener('keydown', initAudio);
+            };
+            
+            // Listen for both click and keydown events
+            document.addEventListener('click', initAudio);
+            document.addEventListener('keydown', initAudio);
+            
+            // Also try to play music after a short delay
+            setTimeout(function() {
+                if (window.SoundManager) {
+                    SoundManager.playBackgroundMusic('mapSelect');
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

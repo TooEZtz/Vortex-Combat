@@ -13,19 +13,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Player selections not found in session storage. Using default characters.');
         
         // If player selections don't exist, we'll use default characters
-        // This could happen if someone navigates directly to the fight screen
         if (!player1Character) {
-            sessionStorage.setItem('player1Character', 'scorpion');
+            sessionStorage.setItem('player1Character', 'curse-or');
         }
         
         if (!player2Character) {
-            sessionStorage.setItem('player2Character', 'subzero');
+            sessionStorage.setItem('player2Character', 'reign');
         }
     }
     
     // Get the final character selections (either from session storage or defaults)
-    const finalPlayer1 = sessionStorage.getItem('player1Character') || 'scorpion';
-    const finalPlayer2 = sessionStorage.getItem('player2Character') || 'subzero';
+    const finalPlayer1 = sessionStorage.getItem('player1Character') || 'curse-or';
+    const finalPlayer2 = sessionStorage.getItem('player2Character') || 'reign';
     
     console.log('Final Player 1:', finalPlayer1);
     console.log('Final Player 2:', finalPlayer2);
@@ -49,10 +48,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create map images based on the selected map
     setupMapBackground(selectedMap, backgroundContainer);
     
-    // Set up fighters
+    // Set up fighters with the correct character selections
     setupFighters(finalPlayer1, finalPlayer2);
-    
-    // Set up game timer
+  
+  // Set up game timer
     setupGameTimer();
     
     // Set up fight animation
@@ -60,6 +59,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the game engine
     initGameEngine(finalPlayer1, finalPlayer2);
+    
+    // Add a small delay and check if images are loaded correctly
+    setTimeout(function() {
+        ensureImagesLoaded(finalPlayer1, finalPlayer2);
+    }, 500);
+
+    addComboAnimationStyle();
+    addTeleportAnimationStyle();
 });
 
 // Game state
@@ -74,7 +81,9 @@ let gameState = {
         direction: 1, // 1 = right, -1 = left
         character: null,
         element: null,
-        healthBar: null
+        healthBar: null,
+        dashCooldown: false,
+        lastDashTime: 0
     },
     player2: {
         health: 100,
@@ -86,7 +95,9 @@ let gameState = {
         direction: -1, // 1 = right, -1 = left
         character: null,
         element: null,
-        healthBar: null
+        healthBar: null,
+        dashCooldown: false,
+        lastDashTime: 0
     },
     arena: {
         width: 1000,
@@ -128,6 +139,39 @@ let gameState = {
             lastKeyTime: 0,
             cooldown: false
         }
+    }
+};
+
+// Add these variables at the top of the file, after gameState declaration
+let lastPunchTime = {
+    player1: 0,
+    player2: 0
+};
+
+let lastPunchType = {
+    player1: 1,
+    player2: 1
+};
+
+// Add last attack time tracking
+let lastAttackTime = {
+    player1: 0,
+    player2: 0
+};
+
+// Add combo tracking with more detailed state
+let comboState = {
+    player1: {
+        sequence: [],
+        lastAttackTime: 0,
+        isComboActive: false,
+        isInComboRecovery: false
+    },
+    player2: {
+        sequence: [],
+        lastAttackTime: 0,
+        isComboActive: false,
+        isInComboRecovery: false
     }
 };
 
@@ -198,59 +242,108 @@ function setupControls() {
 }
 
 function handleKeyDown(e) {
+    const currentTime = Date.now();
+    const ATTACK_DELAY = 50; // 50ms delay between attacks
+    
     // Player 1 controls (WASD + F,G)
     switch(e.key.toLowerCase()) {
-        case 'w': 
-            gameState.keys.player1.jump = true; 
-            recordSpecialMoveKey(gameState.player1, 'up');
+        case 'w':
+            if (!gameState.keys.player1.jump) {  // Only trigger if not already jumping
+                gameState.keys.player1.jump = true;
+                recordSpecialMoveKey(gameState.player1, 'up');
+            }
             break;
-        case 'a': 
-            gameState.keys.player1.left = true; 
+        case 'a':
+            gameState.keys.player1.left = true;
             recordSpecialMoveKey(gameState.player1, 'left');
+            // Check for dash (Shift + A)
+            if (e.shiftKey) {
+                performDash(gameState.player1, -1);
+            }
             break;
-        case 'd': 
-            gameState.keys.player1.right = true; 
+        case 'd':
+            gameState.keys.player1.right = true;
             recordSpecialMoveKey(gameState.player1, 'right');
+            // Check for dash (Shift + D)
+            if (e.shiftKey) {
+                performDash(gameState.player1, 1);
+            }
             break;
-        case 's': 
-            gameState.keys.player1.guard = true; 
+        case 's':
+            gameState.keys.player1.guard = true;
+            guardPlayer(gameState.player1);  // Start guarding immediately
             recordSpecialMoveKey(gameState.player1, 'down');
             break;
-        case 'f': 
-            gameState.keys.player1.punch = true; 
-            recordSpecialMoveKey(gameState.player1, 'punch');
+        case 'f':
+            // Check if enough time has passed since last attack and player is not jumping or dodging
+            if (!gameState.keys.player1.punch && !gameState.player1.isAttacking && 
+                !gameState.player1.isJumping && !gameState.player1.isDodging &&
+                currentTime - lastAttackTime.player1 >= ATTACK_DELAY) {
+                gameState.keys.player1.punch = true;
+                lastAttackTime.player1 = currentTime;
+                attackPlayer(gameState.player1, 'punch');
+            }
             break;
-        case 'g': 
-            gameState.keys.player1.kick = true; 
-            recordSpecialMoveKey(gameState.player1, 'kick');
+        case 'g':
+            // Check if enough time has passed since last attack and player is not jumping or dodging
+            if (!gameState.keys.player1.kick && !gameState.player1.isAttacking && 
+                !gameState.player1.isJumping && !gameState.player1.isDodging &&
+                currentTime - lastAttackTime.player1 >= ATTACK_DELAY) {
+                gameState.keys.player1.kick = true;
+                lastAttackTime.player1 = currentTime;
+                attackPlayer(gameState.player1, 'kick');
+            }
             break;
     }
-    
+
     // Player 2 controls (Arrow keys + K,L)
     switch(e.key) {
-        case 'ArrowUp': 
-            gameState.keys.player2.jump = true; 
-            recordSpecialMoveKey(gameState.player2, 'up');
+        case 'ArrowUp':
+            if (!gameState.keys.player2.jump) {  // Only trigger if not already jumping
+                gameState.keys.player2.jump = true;
+                recordSpecialMoveKey(gameState.player2, 'up');
+            }
             break;
-        case 'ArrowLeft': 
-            gameState.keys.player2.left = true; 
+        case 'ArrowLeft':
+            gameState.keys.player2.left = true;
             recordSpecialMoveKey(gameState.player2, 'left');
+            // Check for dash (Shift + Left Arrow)
+            if (e.shiftKey) {
+                performDash(gameState.player2, -1);
+            }
             break;
-        case 'ArrowRight': 
-            gameState.keys.player2.right = true; 
+        case 'ArrowRight':
+            gameState.keys.player2.right = true;
             recordSpecialMoveKey(gameState.player2, 'right');
+            // Check for dash (Shift + Right Arrow)
+            if (e.shiftKey) {
+                performDash(gameState.player2, 1);
+            }
             break;
-        case 'ArrowDown': 
-            gameState.keys.player2.guard = true; 
+        case 'ArrowDown':
+            gameState.keys.player2.guard = true;
+            guardPlayer(gameState.player2);  // Start guarding immediately
             recordSpecialMoveKey(gameState.player2, 'down');
             break;
-        case 'k': 
-            gameState.keys.player2.punch = true; 
-            recordSpecialMoveKey(gameState.player2, 'punch');
+        case 'k':
+            // Check if enough time has passed since last attack and player is not jumping or dodging
+            if (!gameState.keys.player2.punch && !gameState.player2.isAttacking && 
+                !gameState.player2.isJumping && !gameState.player2.isDodging &&
+                currentTime - lastAttackTime.player2 >= ATTACK_DELAY) {
+                gameState.keys.player2.punch = true;
+                lastAttackTime.player2 = currentTime;
+                attackPlayer(gameState.player2, 'punch');
+            }
             break;
-        case 'l': 
-            gameState.keys.player2.kick = true; 
-            recordSpecialMoveKey(gameState.player2, 'kick');
+        case 'l':
+            // Check if enough time has passed since last attack and player is not jumping or dodging
+            if (!gameState.keys.player2.kick && !gameState.player2.isAttacking && 
+                !gameState.player2.isJumping && !gameState.player2.isDodging &&
+                currentTime - lastAttackTime.player2 >= ATTACK_DELAY) {
+                gameState.keys.player2.kick = true;
+                lastAttackTime.player2 = currentTime;
+                attackPlayer(gameState.player2, 'kick');
+            }
             break;
     }
 }
@@ -258,22 +351,56 @@ function handleKeyDown(e) {
 function handleKeyUp(e) {
     // Player 1 controls
     switch(e.key.toLowerCase()) {
-        case 'w': gameState.keys.player1.jump = false; break;
-        case 'a': gameState.keys.player1.left = false; break;
-        case 'd': gameState.keys.player1.right = false; break;
-        case 's': gameState.keys.player1.guard = false; break;
-        case 'f': gameState.keys.player1.punch = false; break;
-        case 'g': gameState.keys.player1.kick = false; break;
+        case 'w': 
+            gameState.keys.player1.jump = false; 
+            break;
+        case 'a': 
+            gameState.keys.player1.left = false; 
+            // Reset player 1 image when left key is released
+            resetPlayerIdleImage(gameState.player1);
+            break;
+        case 'd': 
+            gameState.keys.player1.right = false; 
+            // Reset player 1 image when right key is released
+            resetPlayerIdleImage(gameState.player1);
+            break;
+        case 's': 
+            gameState.keys.player1.guard = false; 
+            stopGuardPlayer(gameState.player1);  // Stop guarding immediately
+            break;
+        case 'f': 
+            gameState.keys.player1.punch = false; 
+            break;
+        case 'g': 
+            gameState.keys.player1.kick = false; 
+            break;
     }
-    
+
     // Player 2 controls
     switch(e.key) {
-        case 'ArrowUp': gameState.keys.player2.jump = false; break;
-        case 'ArrowLeft': gameState.keys.player2.left = false; break;
-        case 'ArrowRight': gameState.keys.player2.right = false; break;
-        case 'ArrowDown': gameState.keys.player2.guard = false; break;
-        case 'k': gameState.keys.player2.punch = false; break;
-        case 'l': gameState.keys.player2.kick = false; break;
+        case 'ArrowUp': 
+            gameState.keys.player2.jump = false; 
+            break;
+        case 'ArrowLeft': 
+            gameState.keys.player2.left = false; 
+            // Reset player 2 image when left key is released
+            resetPlayerIdleImage(gameState.player2);
+            break;
+        case 'ArrowRight': 
+            gameState.keys.player2.right = false; 
+            // Reset player 2 image when right key is released
+            resetPlayerIdleImage(gameState.player2);
+            break;
+        case 'ArrowDown': 
+            gameState.keys.player2.guard = false; 
+            stopGuardPlayer(gameState.player2);  // Stop guarding immediately
+            break;
+        case 'k': 
+            gameState.keys.player2.punch = false; 
+            break;
+        case 'l': 
+            gameState.keys.player2.kick = false; 
+            break;
     }
 }
 
@@ -304,10 +431,13 @@ function processInput() {
     // Process Player 1 input
     if (gameState.keys.player1.left) {
         movePlayer(gameState.player1, -1);
-    }
-    if (gameState.keys.player1.right) {
+    } else if (gameState.keys.player1.right) {
         movePlayer(gameState.player1, 1);
+    } else if (!gameState.player1.isJumping && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
+        // Reset to idle image if no movement keys are pressed and not in another state
+        resetPlayerIdleImage(gameState.player1);
     }
+    
     if (gameState.keys.player1.jump && !gameState.player1.isJumping) {
         jumpPlayer(gameState.player1);
     }
@@ -316,20 +446,17 @@ function processInput() {
     } else if (gameState.player1.isGuarding) {
         stopGuardPlayer(gameState.player1);
     }
-    if (gameState.keys.player1.punch && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
-        attackPlayer(gameState.player1, 'punch');
-    }
-    if (gameState.keys.player1.kick && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
-        attackPlayer(gameState.player1, 'kick');
-    }
-    
+
     // Process Player 2 input
     if (gameState.keys.player2.left) {
         movePlayer(gameState.player2, -1);
-    }
-    if (gameState.keys.player2.right) {
+    } else if (gameState.keys.player2.right) {
         movePlayer(gameState.player2, 1);
+    } else if (!gameState.player2.isJumping && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
+        // Reset to idle image if no movement keys are pressed and not in another state
+        resetPlayerIdleImage(gameState.player2);
     }
+    
     if (gameState.keys.player2.jump && !gameState.player2.isJumping) {
         jumpPlayer(gameState.player2);
     }
@@ -338,29 +465,67 @@ function processInput() {
     } else if (gameState.player2.isGuarding) {
         stopGuardPlayer(gameState.player2);
     }
-    if (gameState.keys.player2.punch && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
-        attackPlayer(gameState.player2, 'punch');
-    }
-    if (gameState.keys.player2.kick && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
-        attackPlayer(gameState.player2, 'kick');
-    }
+    
+    // Check for special moves
+    checkSpecialMoves(gameState.player1);
+    checkSpecialMoves(gameState.player2);
 }
 
 function movePlayer(player, direction) {
+    // Don't allow movement while attacking or guarding
+    if (player.isAttacking || player.isGuarding || (player === gameState.player1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+        return;
+    }
+    
     // Update player position
     const oldPosition = player.position;
-    player.position += direction * 5;
+    const moveAmount = direction * 5;
+    const newPosition = player.position + moveAmount;
+    
+    // Get character hitbox width
+    const characterWidth = 150; // New standardized width for both characters
+    
+    // Calculate boundaries with hitbox consideration
+    const leftBoundary = gameState.arena.boundaries.left;
+    const rightBoundary = gameState.arena.boundaries.right - characterWidth;
     
     // Keep player within boundaries
-    if (player.position < gameState.arena.boundaries.left) {
-        player.position = gameState.arena.boundaries.left;
-    }
-    if (player.position > gameState.arena.boundaries.right) {
-        player.position = gameState.arena.boundaries.right;
+    if (newPosition < leftBoundary) {
+        player.position = leftBoundary;
+    } else if (newPosition > rightBoundary) {
+        player.position = rightBoundary;
+    } else {
+        player.position = newPosition;
     }
     
-    // Log position change
-    console.log(`Player moved: ${oldPosition} -> ${player.position}, direction: ${direction}`);
+    // Check for collision with other player
+    const otherPlayer = player === gameState.player1 ? gameState.player2 : gameState.player1;
+    const minDistance = 25; // Minimum distance between players
+    
+    // Calculate distance between players
+    const distance = Math.abs(player.position - otherPlayer.position);
+    
+    // If players are too close, instantly teleport to maintain minimum distance
+    if (distance < minDistance) {
+        // Determine which side the player is approaching from
+        const isApproachingFromLeft = player.position < otherPlayer.position;
+        
+        // Calculate the teleport position (26px distance)
+        if (isApproachingFromLeft) {
+            // Player is approaching from left, teleport to right side of opponent
+            player.position = otherPlayer.position - 26;
+        } else {
+            // Player is approaching from right, teleport to left side of opponent
+            player.position = otherPlayer.position + 26;
+        }
+        
+        // Ensure the new position is within boundaries
+        if (player.position < leftBoundary) {
+            player.position = leftBoundary;
+        } else if (player.position > rightBoundary) {
+            player.position = rightBoundary;
+        }
+    }
     
     // Update player direction
     player.direction = direction;
@@ -368,14 +533,36 @@ function movePlayer(player, direction) {
     // Apply position immediately
     if (player.element) {
         player.element.style.left = player.position + 'px';
+        // Maintain Y-axis position for Reign
+        if ((player === gameState.player1 && gameState.player1.character === 'reign') || 
+            (player === gameState.player2 && gameState.player2.character === 'reign')) {
+            player.element.style.bottom = '50px'; // Keep Reign at the same height
+        }
     }
+    
+    // Update player image for movement
+    updatePlayerMovementImage(player, direction);
+    
+    console.log(`Player moved: ${oldPosition} -> ${player.position}, direction: ${direction}`);
 }
 
 function jumpPlayer(player) {
+    // Don't allow jumping while guarding
+    if (player.isGuarding || (player === gameState.player1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+        return;
+    }
+    
     player.isJumping = true;
     
     // Add jump animation class
     if (player.element) {
+        const playerImage = player.element.querySelector('.fighter-image');
+        
+        // Store current transform before jumping to preserve orientation
+        if (playerImage) {
+            playerImage.dataset.originalTransform = playerImage.style.transform;
+        }
+        
         player.element.classList.add('jumping');
         
         // Force a reflow to restart the animation if it's already applied
@@ -387,78 +574,297 @@ function jumpPlayer(player) {
         player.isJumping = false;
         if (player.element) {
             player.element.classList.remove('jumping');
+            
+            // Restore original transform after jump
+            const playerImage = player.element.querySelector('.fighter-image');
+            if (playerImage && playerImage.dataset.originalTransform) {
+                playerImage.style.transform = playerImage.dataset.originalTransform;
+                delete playerImage.dataset.originalTransform;
+            }
+            
+            // Check for collision after landing
+            const otherPlayer = player === gameState.player1 ? gameState.player2 : gameState.player1;
+            const minDistance = 25; // Minimum distance between players
+            
+            // Calculate distance between players
+            const distance = Math.abs(player.position - otherPlayer.position);
+            
+            // If players are too close after landing, push them apart
+            if (distance < minDistance) {
+                if (player.position < otherPlayer.position) {
+                    // Player 1 is on the left, push them left
+                    player.position = otherPlayer.position - minDistance;
+                } else {
+                    // Player 1 is on the right, push them right
+                    player.position = otherPlayer.position + minDistance;
+                }
+                
+                // Update position immediately
+                player.element.style.left = player.position + 'px';
+            }
         }
     }, 500);
 }
 
 function guardPlayer(player) {
+    const isPlayer1 = player === gameState.player1;
+    
+    // Don't allow guarding while jumping
+    if (player.isJumping) {
+        return;
+    }
+    
+    // Set guard state immediately
     player.isGuarding = true;
     
-    // Add guard animation class
-    if (player.element) {
-        player.element.classList.add('guarding');
-        
-        // Force a reflow to restart the animation if it's already applied
-        void player.element.offsetWidth;
+    // Get the player image element
+    const playerImage = player.element?.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    // Get the character ID
+    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    
+    // Set the correct block animation based on character
+    let blockPath;
+    if (characterId === 'curse-or') {
+        blockPath = '../assests/players/character_1/Right_Block-ezgif.com-gif-maker.gif';
+    } else if (characterId === 'reign') {
+        blockPath = '../assests/players/character_2/2_Right_block.gif';
     }
+    
+    // Apply the block animation
+    if (blockPath) {
+        playerImage.style.backgroundImage = `url(${blockPath})`;
+        
+        // Preserve the correct orientation and scaling
+        const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+        
+        if (player === gameState.player1) {
+            if (characterId === 'reign') {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+            } else {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        } else {
+            if (characterId === 'reign') {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(1) scale(0.85)' : 'scaleX(-1) scale(0.85)';
+            } else {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(1)' : 'scaleX(-1)';
+            }
+        }
+    }
+    
+    console.log('Guard activated:', isPlayer1 ? 'Player 1' : 'Player 2', {
+        isGuarding: player.isGuarding,
+        guardKey: isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard,
+        isJumping: player.isJumping
+    });
 }
 
 function stopGuardPlayer(player) {
+    const isPlayer1 = player === gameState.player1;
+    
+    // Clear guard state immediately
     player.isGuarding = false;
     
-    // Remove guard animation class
-    if (player.element) {
-        player.element.classList.remove('guarding');
-    }
+    // Reset to idle animation
+    resetPlayerIdleImage(player);
+    
+    console.log('Guard deactivated:', isPlayer1 ? 'Player 1' : 'Player 2', {
+        isGuarding: player.isGuarding,
+        guardKey: isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard
+    });
 }
 
 function attackPlayer(player, attackType) {
+    const isPlayer1 = player === gameState.player1;
+    
+    // Don't start a new attack if already attacking
+    if (player.isAttacking) {
+        return;
+    }
+    
+    // Don't allow attacks while jumping or dodging
+    if (player.isJumping || player.isDodging) {
+        return;
+    }
+    
+    // Don't allow attacks while guarding
+    if (player.isGuarding || (isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+        return;
+    }
+    
+    // Don't allow attacks during combo recovery
+    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
+    if (playerComboState.isInComboRecovery) {
+        return;
+    }
+    
     player.isAttacking = true;
     player.attackType = attackType;
     
-    // Add attack animation class
-    if (player.element) {
-        player.element.classList.add(attackType);
-        
-        // Force a reflow to restart the animation if it's already applied
-        void player.element.offsetWidth;
+    const playerImage = player.element?.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    // Get the character ID
+    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    
+    // Preserve the correct orientation
+    const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+    
+    // Update combo sequence
+    const currentTime = Date.now();
+    const comboTimeout = 1500; // 1.5 seconds for combo execution
+    
+    // Clear old combos if too much time has passed
+    if (currentTime - playerComboState.lastAttackTime > comboTimeout) {
+        playerComboState.sequence = [];
+        playerComboState.isComboActive = false;
+        playerComboState.isInComboRecovery = false;
+        console.log('Combo sequence reset due to timeout');
     }
     
-    // Check for hit
-    checkHit(player);
-    
-    // Reset attack after animation
-    setTimeout(() => {
-        player.isAttacking = false;
-        player.attackType = null;
-        if (player.element) {
-            player.element.classList.remove(attackType);
+    let attackPath;
+    if (characterId === 'curse-or') {
+        if (attackType === 'punch') {
+            attackPath = '../assests/players/character_1/Right_Punch_1-ezgif.com-gif-maker.gif';
+        } else if (attackType === 'kick') {
+            attackPath = '../assests/players/character_1/Right_Kick1-ezgif.com-gif-maker.gif';
         }
-    }, 300);
-}
-
-function checkHit(attacker) {
-    // Determine the defender
-    const defender = attacker === gameState.player1 ? gameState.player2 : gameState.player1;
+    } else if (characterId === 'reign') {
+        if (attackType === 'punch') {
+            attackPath = '../assests/players/character_2/2_Rightpunch_1.gif';
+        } else if (attackType === 'kick') {
+            attackPath = '../assests/players/character_2/2_Right_kick_1.gif';
+        }
+    }
     
-    // Calculate distance between players
-    const distance = Math.abs(attacker.position - defender.position);
-    
-    // Check if players are close enough for a hit (increased range from 150 to 250)
-    if (distance < 250) {
-        // Check if defender is jumping (can't be hit while jumping)
-        if (!defender.isJumping) {
-            // Check if defender is guarding
-            if (!defender.isGuarding) {
-                // Hit landed!
-                applyDamage(defender, attacker.attackType === 'punch' ? 10 : 15);
-                
-                // Show hit effect
-                showHitEffect(defender);
-            } else {
-                // Defender is guarding - show blocked effect
+    // Update the image with animation
+    if (attackPath) {
+        playerImage.style.backgroundImage = `url(${attackPath})`;
+        
+        // Set orientation
+        if (isPlayer1) {
+            playerImage.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+        } else {
+            playerImage.style.transform = player1IsOnRight ? 'scaleX(1) scale(0.85)' : 'scaleX(-1) scale(0.85)';
+        }
+        
+        // Determine the defender
+        const defender = isPlayer1 ? gameState.player2 : gameState.player1;
+        
+        // Calculate distance between players
+        const distance = Math.abs(player.position - defender.position);
+        
+        // Check if players are close enough for a hit
+        if (distance < 50) {
+            // Check guard state first
+            const defenderGuardKey = isPlayer1 ? gameState.keys.player2.guard : gameState.keys.player1.guard;
+            if (defender.isGuarding === true || defenderGuardKey === true) {
+                console.log('Attack blocked by guard!');
                 showBlockedEffect(defender);
+                return;
             }
+            
+            // If not guarding, apply damage and track successful hit
+            console.log('Attack landed!');
+            applyDamage(defender, 10); // Regular attacks do 10 damage
+            showHitEffect(defender);
+            showAttackText(player, attackType); // Show attack text only on successful hit
+            
+            // Track successful hit for combo
+            playerComboState.sequence.push(attackType);
+            playerComboState.lastAttackTime = currentTime;
+            
+            // Keep only last 3 successful hits
+            if (playerComboState.sequence.length > 3) {
+                playerComboState.sequence.shift();
+            }
+            
+            // Check for combo sequence
+            const sequence = playerComboState.sequence;
+            const isComboSequence = sequence.length === 3 && 
+                                  sequence[0] === 'punch' && 
+                                  sequence[1] === 'punch' && 
+                                  sequence[2] === 'kick';
+            
+            if (isComboSequence) {
+                console.log('Combo sequence completed!');
+                // Use combo animation
+                if (characterId === 'curse-or') {
+                    attackPath = '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif';
+                    
+                    // Add multi-stage combo effects
+                    const defenderElement = defender.element;
+                    if (defenderElement) {
+                        // Stage 1: Uppercut
+                        defenderElement.style.animation = 'uppercutEffect 0.5s ease';
+                        applyDamage(defender, 10); // First hit damage
+                        
+                        // Stage 2: Ground Smash (after uppercut)
+                        setTimeout(() => {
+                            defenderElement.style.animation = 'groundSmashEffect 0.3s ease';
+                            applyDamage(defender, 10); // Second hit damage
+                        }, 500);
+                        
+                        // Stage 3: Multiple Kicks with Displacement
+                        setTimeout(() => {
+                            defenderElement.style.animation = 'kickDisplaceEffect 1s ease';
+                            applyDamage(defender, 10); // Third hit damage
+                        }, 800);
+                        
+                        // Reset animation after all stages
+                        setTimeout(() => {
+                            defenderElement.style.animation = '';
+                        }, 1800);
+                    }
+                } else if (characterId === 'reign') {
+                    attackPath = '../assests/players/character_2/2_Right_combo.gif';
+                }
+                
+                // Update image with combo animation
+                playerImage.style.backgroundImage = `url(${attackPath})`;
+                playerImage.classList.add('combo-animation');
+                
+                // Show combo effect
+                showComboEffect(defender);
+                
+                // Set combo recovery state
+                playerComboState.isInComboRecovery = true;
+                
+                // Reset to idle image after combo animation
+                setTimeout(() => {
+                    resetPlayerIdleImage(player);
+                    player.isAttacking = false;
+                    player.attackType = null;
+                    playerComboState.isComboActive = false;
+                    playerComboState.sequence = [];
+                    playerImage.classList.remove('combo-animation');
+                    // Add recovery time after combo
+                    setTimeout(() => {
+                        playerComboState.isInComboRecovery = false;
+                        console.log('Combo recovery complete');
+                    }, 1000);
+                }, 2000);
+            } else {
+                // Reset to idle image after regular attack animation
+                setTimeout(() => {
+                    resetPlayerIdleImage(player);
+                    player.isAttacking = false;
+                    player.attackType = null;
+                }, 250); // 250ms for regular attack animation
+            }
+        } else {
+            // Attack missed, reset combo sequence
+            playerComboState.sequence = [];
+            playerComboState.isComboActive = false;
+            
+            // Reset to idle image after animation
+            setTimeout(() => {
+                resetPlayerIdleImage(player);
+                player.isAttacking = false;
+                player.attackType = null;
+            }, 250); // 250ms for regular attack animation
         }
     }
 }
@@ -478,6 +884,21 @@ function showBlockedEffect(player) {
     playSound('hit');
 }
 
+function showDodgedEffect(player) {
+    // Add dodged animation class
+    if (player.element) {
+        player.element.classList.add('dodged');
+        
+        // Remove dodged animation class after a short delay
+        setTimeout(() => {
+            player.element.classList.remove('dodged');
+        }, 200);
+    }
+    
+    // Play dodge sound
+    playSound('dodge');
+}
+
 function applyDamage(player, amount) {
     // Reduce player health
     player.health -= amount;
@@ -485,6 +906,9 @@ function applyDamage(player, amount) {
     
     // Update health bar
     updateHealthBar(player);
+    
+    // Show hit effect
+    showHitEffect(player);
     
     // Check for knockout
     if (player.health <= 0) {
@@ -494,18 +918,76 @@ function applyDamage(player, amount) {
 }
 
 function showHitEffect(player) {
-    // Add hit animation class
-    if (player.element) {
-        player.element.classList.add('hit');
-        
-        // Remove hit animation class after a short delay
-        setTimeout(() => {
-            player.element.classList.remove('hit');
-        }, 200);
+    if (!player.element) return;
+    
+    const playerImage = player.element.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    // Store the current transform to preserve orientation
+    const currentTransform = playerImage.style.transform;
+    
+    // Add hit class for animation
+    player.element.classList.add('hit');
+    
+    // Get the character ID
+    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    
+    // Set the correct hit animation based on character
+    let hitPath;
+    if (characterId === 'curse-or') {
+        hitPath = '../assests/players/character_1/Right_got_hit-ezgif.com-gif-maker.gif';
+    } else {
+        hitPath = '../assests/players/character_2/2_Right_got_hit.gif';
     }
     
-    // Play hit sound
-    playSound('hit');
+    // Apply the hit animation immediately
+    if (hitPath) {
+        playerImage.style.backgroundImage = `url(${hitPath})`;
+        
+        // Preserve the correct orientation
+        playerImage.style.transform = currentTransform;
+        
+        // Add pushback effect (reduced from 30 to 15)
+        const pushbackAmount = 15; // Reduced knockback distance
+        const currentPosition = player.position;
+        const newPosition = player === gameState.player1 ? 
+            currentPosition - pushbackAmount : 
+            currentPosition + pushbackAmount;
+            
+        // Update position with pushback
+        player.position = newPosition;
+        player.element.style.left = newPosition + 'px';
+    }
+    
+    // Remove hit class and reset to idle after animation
+    setTimeout(() => {
+        player.element.classList.remove('hit');
+        resetPlayerIdleImage(player);
+    }, 800); // Keep the full animation duration
+}
+
+// Add new function for attack text effects
+function showAttackText(player, attackType) {
+    if (!player.element) return;
+    
+    // Create attack text element
+    const attackText = document.createElement('div');
+    attackText.className = 'attack-text';
+    
+    // Set text based on attack type
+    if (attackType === 'punch') {
+        attackText.textContent = 'PHAU!';
+    } else if (attackType === 'kick') {
+        attackText.textContent = 'WOOSH!';
+    }
+    
+    // Add text to player element
+    player.element.appendChild(attackText);
+    
+    // Remove text after animation
+    setTimeout(() => {
+        attackText.remove();
+    }, 500);
 }
 
 function playSound(soundType) {
@@ -539,7 +1021,44 @@ function updateGameState() {
 }
 
 function renderGame() {
-    // Update debug overlay
+    // Update player positions
+    if (gameState.player1.element && gameState.player2.element) {
+        // Update positions
+        gameState.player1.element.style.left = gameState.player1.position + 'px';
+        gameState.player2.element.style.left = gameState.player2.position + 'px';
+
+        // Update orientations only if not in any animation
+        const player1Image = gameState.player1.element.querySelector('.fighter-image');
+        const player2Image = gameState.player2.element.querySelector('.fighter-image');
+        
+        if (player1Image && !player1Image.classList.contains('jumping') && 
+            !player1Image.classList.contains('punch') && 
+            !player1Image.classList.contains('kick') && 
+            !player1Image.classList.contains('hit')) {
+            
+            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+            if (gameState.player1.character === 'reign') {
+                player1Image.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+            } else {
+                player1Image.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+        
+        if (player2Image && !player2Image.classList.contains('jumping') && 
+            !player2Image.classList.contains('punch') && 
+            !player2Image.classList.contains('kick') && 
+            !player2Image.classList.contains('hit')) {
+            
+            const player2IsOnRight = gameState.player2.position > gameState.player1.position;
+            if (gameState.player2.character === 'reign') {
+                player2Image.style.transform = player2IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+            } else {
+                player2Image.style.transform = player2IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+    }
+    
+    // Update debug overlay if it exists
     updateDebugOverlay();
 }
 
@@ -608,62 +1127,146 @@ function setupMapBackground(mapId, container) {
     console.log(`Loading map background: ${mapId} (${mapFile})`);
 }
 
-function setupFighters(player1Id, player2Id) {
-    const player1Element = document.getElementById('player1');
-    const player2Element = document.getElementById('player2');
+function setupFighters(player1Character, player2Character) {
+    console.log('Setting up fighters:', player1Character, player2Character);
     
-    if (player1Element) {
-        const player1Name = document.querySelector('#player1 .fighter-name');
-        const player1Image = document.querySelector('#player1 .fighter-image');
+    // Get player elements
+    const player1 = document.getElementById('player1');
+    const player2 = document.getElementById('player2');
+    const player1Image = player1?.querySelector('.fighter-image');
+    const player2Image = player2?.querySelector('.fighter-image');
+    
+    // Set character IDs as data attributes
+    if (player1) player1.setAttribute('data-character', player1Character);
+    if (player2) player2.setAttribute('data-character', player2Character);
+    
+    // Common size settings for both characters
+    const characterSettings = {
+        'curse-or': {
+            hitboxWidth: '150px',
+            hitboxHeight: '150px',
+            imageWidth: '150px',
+            imageHeight: '300px',
+            scale: 1
+        },
+        'reign': {
+            hitboxWidth: '150px',
+            hitboxHeight: '150px',
+            imageWidth: '100px',
+            imageHeight: '150px',
+            scale: 0.5
+        }
+    };
+
+    // Add style to remove all debug elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .fighter-image {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .fighter-debug, .debug-info {
+            display: none !important;
+        }
+        #debugOverlay {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Set up player 1's image
+    if (player1Image) {
+        const p1Settings = characterSettings[player1Character];
+        if (player1Character === 'curse-or') {
+            player1Image.style.backgroundImage = 'url("../assests/players/character_1/Right_idle.gif")';
+            player1Image.style.width = p1Settings.imageWidth;
+            player1Image.style.height = p1Settings.imageHeight;
+            player1Image.style.backgroundSize = `${p1Settings.imageWidth} ${p1Settings.imageHeight}`;
+        } else if (player1Character === 'reign') {
+            player1Image.style.backgroundImage = 'url("../assests/players/character_2/2_Right_idle.gif")';
+            player1Image.style.width = p1Settings.imageWidth;
+            player1Image.style.height = p1Settings.imageHeight;
+            player1Image.style.backgroundSize = `${p1Settings.imageWidth} ${p1Settings.imageHeight}`;
+        }
+        player1Image.style.backgroundPosition = 'center bottom';
+        player1Image.style.backgroundRepeat = 'no-repeat';
         
-        // Set player 1 name
-        player1Name.textContent = formatCharacterName(player1Id);
+        // Set hitbox size using the new hitbox dimensions
+        if (player1) {
+            player1.style.width = p1Settings.hitboxWidth;
+            player1.style.height = p1Settings.hitboxHeight;
+            
+            player1.style.boxSizing = 'border-box';
+            player1.style.display = 'flex';
+            player1.style.justifyContent = 'center';
+            player1.style.alignItems = 'flex-end';
+        }
         
-        // Add character name to the box
-        player1Image.textContent = formatCharacterName(player1Id).charAt(0);
-        
-        // Set initial position
-        player1Element.style.left = '200px';
+        // Apply initial transform with correct scale
+        if (player1Character === 'reign') {
+            player1Image.style.transform = `scaleX(1) scale(${p1Settings.scale})`;
+        } else {
+            player1Image.style.transform = 'scaleX(1)';
+        }
     }
     
-    if (player2Element) {
-        const player2Name = document.querySelector('#player2 .fighter-name');
-        const player2Image = document.querySelector('#player2 .fighter-image');
+    // Set up player 2's image with similar changes...
+    if (player2Image) {
+        const p2Settings = characterSettings[player2Character];
+        if (player2Character === 'curse-or') {
+            player2Image.style.backgroundImage = 'url("../assests/players/character_1/Right_idle.gif")';
+            player2Image.style.width = p2Settings.imageWidth;
+            player2Image.style.height = p2Settings.imageHeight;
+            player2Image.style.backgroundSize = `${p2Settings.imageWidth} ${p2Settings.imageHeight}`;
+        } else if (player2Character === 'reign') {
+            player2Image.style.backgroundImage = 'url("../assests/players/character_2/2_Right_idle.gif")';
+            player2Image.style.width = p2Settings.imageWidth;
+            player2Image.style.height = p2Settings.imageHeight;
+            player2Image.style.backgroundSize = `${p2Settings.imageWidth} ${p2Settings.imageHeight}`;
+        }
+        player2Image.style.backgroundPosition = 'center bottom';
+        player2Image.style.backgroundRepeat = 'no-repeat';
         
-        // Set player 2 name
-        player2Name.textContent = formatCharacterName(player2Id);
+        // Set hitbox size using the new hitbox dimensions
+        if (player2) {
+            player2.style.width = p2Settings.hitboxWidth;
+            player2.style.height = p2Settings.hitboxHeight;
+          
+            player2.style.boxSizing = 'border-box';
+            player2.style.display = 'flex';
+            player2.style.justifyContent = 'center';
+            player2.style.alignItems = 'flex-end';
+        }
         
-        // Add character name to the box
-        player2Image.textContent = formatCharacterName(player2Id).charAt(0);
-        
-        // Set initial position
-        player2Element.style.left = '800px';
+        // Apply initial transform with correct scale
+        if (player2Character === 'reign') {
+            player2Image.style.transform = `scaleX(-1) scale(${p2Settings.scale})`;
+        } else {
+            player2Image.style.transform = 'scaleX(-1)';
+        }
     }
     
-    // Log that fighters are set up
-    console.log('Fighters set up with positions:', 
-                player1Element.style.left, 
-                player2Element.style.left);
+    // Set player names
+    const player1Name = player1?.querySelector('.fighter-name');
+    const player2Name = player2?.querySelector('.fighter-name');
+    
+    if (player1Name) player1Name.textContent = formatCharacterName(player1Character);
+    if (player2Name) player2Name.textContent = formatCharacterName(player2Character);
+    
+    // Remove debug logging
+    console.log('Fighters initialized');
 }
 
 function formatCharacterName(id) {
     // Return the correct character name based on the character ID
     switch(id) {
-        case 'scorpion':
-        case 'johnny':
+        case 'curse-or':
             return 'CURSE-OR';
-        case 'subzero':
-        case 'sonya':
+        case 'reign':
             return 'REIGN';
         default:
-            // Fallback to original names if needed
-            const names = {
-                'raiden': 'RAIDEN',
-                'liukang': 'LIU KANG',
-                'kitana': 'KITANA',
-                'johnnycage': 'JOHNNY CAGE'
-            };
-            return names[id] || id.toUpperCase();
+            return id.toUpperCase();
     }
 }
 
@@ -763,11 +1366,11 @@ function checkSpecialMoves(player) {
 function getSpecialMovesForCharacter(character) {
     // Define special moves for each character
     const specialMovesByCharacter = {
-        'scorpion': [
+        'curse-or': [
             { name: 'Spear', sequence: 'down,down,punch', damage: 25, animation: 'spear' },
             { name: 'Fire Breath', sequence: 'down,right,punch', damage: 20, animation: 'firebreath' }
         ],
-        'subzero': [
+        'reign': [
             { name: 'Ice Ball', sequence: 'down,right,punch', damage: 15, animation: 'iceball' },
             { name: 'Slide', sequence: 'down,left,kick', damage: 20, animation: 'slide' }
         ],
@@ -827,16 +1430,12 @@ function showSpecialMoveName(player, moveName) {
     const specialMoveElement = document.createElement('div');
     specialMoveElement.className = 'special-move-name';
     specialMoveElement.textContent = moveName;
+    player.element.appendChild(specialMoveElement);
     
-    // Add to player element
-    if (player.element) {
-        player.element.appendChild(specialMoveElement);
-        
-        // Remove after animation
-        setTimeout(() => {
-            specialMoveElement.remove();
-        }, 1500);
-    }
+    // Remove combo animation class and text after animation
+    setTimeout(() => {
+        specialMoveElement.remove();
+    }, 1500);
 }
 
 function createDebugOverlay() {
@@ -914,4 +1513,528 @@ function updateHealthBar(player) {
         player.healthBar.style.width = player.health + '%';
         player.healthBar.textContent = Math.round(player.health) + '%';
     }
+}
+
+// Function to ensure images are loaded correctly
+function ensureImagesLoaded(player1Id, player2Id) {
+    console.log('Checking if images are loaded correctly...');
+    
+    const player1Element = document.getElementById('player1');
+    const player2Element = document.getElementById('player2');
+    const player1Image = document.querySelector('#player1 .fighter-image');
+    const player2Image = document.querySelector('#player2 .fighter-image');
+    
+    // Check if player 1 image is loaded
+    if (!player1Image.style.backgroundImage || player1Image.style.backgroundImage === 'none') {
+        console.warn('Player 1 image not loaded, fixing...');
+        let player1ImagePath;
+        
+        if (player1Id === 'curse-or') {
+            player1ImagePath = '../assests/players/character_1/Right_idle.gif';
+        } else if (player1Id === 'reign') {
+            player1ImagePath = '../assests/players/character_2/2_Right_idle.gif';
+        } else {
+            player1ImagePath = '../assests/players/character_1/Right_idle.gif';
+        }
+        
+        player1Image.style.backgroundImage = `url(${player1ImagePath})`;
+        player1Image.style.backgroundSize = 'contain';
+        player1Image.style.backgroundPosition = 'center bottom';
+        player1Image.style.backgroundRepeat = 'no-repeat';
+        player1Image.style.backgroundColor = 'transparent';
+    }
+    
+    // Check if player 2 image is loaded
+    if (!player2Image.style.backgroundImage || player2Image.style.backgroundImage === 'none') {
+        console.warn('Player 2 image not loaded, fixing...');
+        let player2ImagePath;
+        
+        if (player2Id === 'curse-or') {
+            player2ImagePath = '../assests/players/character_1/Right_idle.gif';
+        } else if (player2Id === 'reign') {
+            player2ImagePath = '../assests/players/character_2/2_Right_idle.gif';
+        } else {
+            player2ImagePath = '../assests/players/character_2/2_Right_idle.gif';
+        }
+        
+        player2Image.style.backgroundImage = `url(${player2ImagePath})`;
+        player2Image.style.backgroundSize = 'contain';
+        player2Image.style.backgroundPosition = 'center bottom';
+        player2Image.style.backgroundRepeat = 'no-repeat';
+        player2Image.style.backgroundColor = 'transparent';
+    }
+    
+    // Remove any facing classes that might interfere
+    if (player1Element) {
+        player1Element.classList.remove('facing-left', 'facing-right');
+        
+        // Set initial orientation - Player 1 starts on left, facing right
+        player1Image.style.transform = 'scaleX(1)';
+    }
+    
+    if (player2Element) {
+        player2Element.classList.remove('facing-left', 'facing-right');
+        
+        // Set initial orientation - Player 2 starts on right, facing left
+        if (player2Id === 'reign' && player2Image) {
+            player2Image.style.transform = 'scaleX(-1) scale(0.85)';
+        } else if (player2Image) {
+            player2Image.style.transform = 'scaleX(-1)';
+        }
+    }
+    
+    console.log('Image check complete.');
+}
+
+// Add these new functions after the movePlayer function
+function updatePlayerMovementImage(player, direction) {
+    if (!player.element) return;
+    
+    const playerImage = player.element.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    
+    // Debug log to check character ID
+    console.log(`updatePlayerMovementImage - Player: ${player === gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}, Direction: ${direction}`);
+    
+    let imagePath;
+    
+    // If direction is 0 or not provided, reset to idle image
+    if (!direction) {
+        resetPlayerIdleImage(player);
+        return;
+    }
+    
+    // Determine if players have crossed each other
+    const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+    
+    // For Player 1
+    if (player === gameState.player1) {
+        // Determine the correct image path based on character and direction
+        if (characterId === 'curse-or') {
+            // Curse-or
+            if ((direction === 1 && !player1IsOnRight) || (direction === -1 && player1IsOnRight)) {
+                // Moving forward (towards opponent)
+                imagePath = '../assests/players/character_1/Right_Move_Forward.png';
+            } else {
+                // Moving backward (away from opponent)
+                imagePath = '../assests/players/character_1/Right_Move_Backward.png';
+            }
+        } else {
+            // Reign
+            if ((direction === 1 && !player1IsOnRight) || (direction === -1 && player1IsOnRight)) {
+                // Moving forward (towards opponent)
+                imagePath = '../assests/players/character_2/2_Right_move_foward.png';
+            } else {
+                // Moving backward (away from opponent)
+                imagePath = '../assests/players/character_2/2_Right_move_backwards.png';
+            }
+        }
+    } 
+    // For Player 2
+    else {
+        // Determine the correct image path based on character and direction
+        if (characterId === 'curse-or') {
+            // Curse-or
+            if ((direction === 1 && player1IsOnRight) || (direction === -1 && !player1IsOnRight)) {
+                // Moving forward (towards opponent)
+                imagePath = '../assests/players/character_1/Right_Move_Forward.png';
+            } else {
+                // Moving backward (away from opponent)
+                imagePath = '../assests/players/character_1/Right_Move_Backward.png';
+            }
+        } else {
+            // Reign
+            if ((direction === 1 && player1IsOnRight) || (direction === -1 && !player1IsOnRight)) {
+                // Moving forward (towards opponent)
+                imagePath = '../assests/players/character_2/2_Right_move_foward.png';
+            } else {
+                // Moving backward (away from opponent)
+                imagePath = '../assests/players/character_2/2_Right_move_backwards.png';
+            }
+        }
+    }
+    
+    // Only update if we have a valid image path
+    if (imagePath) {
+        console.log(`Updating ${player === gameState.player1 ? 'Player 1' : 'Player 2'} movement image: ${imagePath}`);
+        playerImage.style.backgroundImage = `url(${imagePath})`;
+        
+        // Preserve the correct orientation for Reign
+        if (characterId !== 'curse-or') {
+            // For Reign, we need to maintain the scale(0.85) transform
+            if (player === gameState.player1) {
+                if (player1IsOnRight) {
+                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
+                } else {
+                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
+                }
+            } else {
+                if (player1IsOnRight) {
+                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
+                } else {
+                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
+                }
+            }
+        }
+    } else {
+        console.warn(`No valid image path found for ${player === gameState.player1 ? 'Player 1' : 'Player 2'} with character ID: ${characterId}`);
+    }
+}
+
+function resetPlayerIdleImage(player) {
+    if (!player.element) return;
+    
+    const playerImage = player.element.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    // Don't reset image or orientation during jumps
+    if (player.isJumping || playerImage.classList.contains('jumping')) {
+        return;
+    }
+    
+    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    
+    // Debug log to check character ID
+    console.log(`resetPlayerIdleImage - Player: ${player === gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}`);
+    
+    let idlePath;
+    
+    // Determine the correct idle image path based on character
+    if (characterId === 'curse-or') {
+        // Curse-or
+        idlePath = '../assests/players/character_1/Right_idle.gif';
+    } else {
+        // Reign
+        idlePath = '../assests/players/character_2/2_Right_idle.gif';
+    }
+    
+    // Only update if we have a valid image path and player is not in another state
+    if (idlePath && !player.isJumping && !player.isAttacking && !player.isGuarding) {
+        console.log(`Resetting ${player === gameState.player1 ? 'Player 1' : 'Player 2'} to idle image: ${idlePath}`);
+        playerImage.style.backgroundImage = `url(${idlePath})`;
+        
+        // Preserve the correct orientation for Reign
+        if (characterId !== 'curse-or') {
+            // Determine if players have crossed each other
+            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+            
+            // For Reign, we need to maintain the scale(0.85) transform
+            if (player === gameState.player1) {
+                if (player1IsOnRight) {
+                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
+                } else {
+                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
+                }
+            } else {
+                if (player1IsOnRight) {
+                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
+                } else {
+                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
+                }
+            }
+        } else {
+            // For Curse-or, just handle the scaleX
+            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+            if (player === gameState.player1) {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            } else {
+                playerImage.style.transform = player1IsOnRight ? 'scaleX(1)' : 'scaleX(-1)';
+            }
+        }
+    } else if (!idlePath) {
+        console.warn(`No valid idle image path found for ${player === gameState.player1 ? 'Player 1' : 'Player 2'} with character ID: ${characterId}`);
+    }
+}
+
+// Add new function for combo effect
+function showComboEffect(player) {
+    // Add combo animation class
+    if (player.element) {
+        player.element.classList.add('combo-hit');
+        
+        // Create combo text effect
+        const comboText = document.createElement('div');
+        comboText.className = 'combo-text';
+        comboText.textContent = '3x COMBO!';
+        player.element.appendChild(comboText);
+        
+        // Remove combo animation class and text after animation
+        setTimeout(() => {
+            player.element.classList.remove('combo-hit');
+            comboText.remove();
+        }, 500);
+    }
+    
+    // Play combo sound
+    playSound('combo');
+}
+
+// Add this CSS to handle the multi-stage combo animation
+function addComboAnimationStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slowCombo {
+            0% { background-position: 0% 0%; }
+            100% { background-position: -100% 0%; }
+        }
+        
+        .combo-animation {
+            animation: slowCombo 2s steps(15) forwards;
+        }
+
+        @keyframes uppercutEffect {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-100px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes groundSmashEffect {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(20px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes kickDisplaceEffect {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(100px); }
+        }
+
+        .combo-hit {
+            animation: comboHitEffect 0.5s ease;
+        }
+
+        @keyframes comboHitEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .combo-text {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff0;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: comboTextEffect 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes comboTextEffect {
+            0% { 
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            100% { 
+                transform: translateX(-50%) translateY(-50px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function updatePlayerPositions() {
+    if (gameState.player1.element) {
+        gameState.player1.element.style.left = gameState.player1.position + 'px';
+    }
+    if (gameState.player2.element) {
+        gameState.player2.element.style.left = gameState.player2.position + 'px';
+    }
+    
+    // Update player directions (flip sprites)
+    if (gameState.player1.element && gameState.player2.element) {
+        const player1Image = gameState.player1.element.querySelector('.fighter-image');
+        const player2Image = gameState.player2.element.querySelector('.fighter-image');
+        
+        // Only update orientation if not jumping
+        if (player1Image && !player1Image.classList.contains('jumping')) {
+            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+            if (gameState.player1.character === 'reign') {
+                player1Image.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+            } else {
+                player1Image.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+        
+        if (player2Image && !player2Image.classList.contains('jumping')) {
+            const player2IsOnRight = gameState.player2.position > gameState.player1.position;
+            if (gameState.player2.character === 'reign') {
+                player2Image.style.transform = player2IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
+            } else {
+                player2Image.style.transform = player2IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
+            }
+        }
+    }
+}
+
+// Add new function for pass-through effect
+function addPassThroughEffect(player) {
+    if (!player.element) return;
+    
+    // Add pass-through animation class
+    player.element.classList.add('pass-through');
+    
+    // Remove pass-through animation class after animation
+    setTimeout(() => {
+        player.element.classList.remove('pass-through');
+    }, 500);
+}
+
+// Update the animation styles
+function addTeleportAnimationStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes passThroughEffect {
+            0% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            25% { 
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+            50% { 
+                opacity: 0.2;
+                transform: scale(0.6);
+            }
+            75% { 
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .pass-through {
+            animation: passThroughEffect 0.5s ease;
+        }
+
+        @keyframes dashCloneEffect {
+            0% { 
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            100% { 
+                opacity: 0;
+                transform: scale(1.1);
+            }
+        }
+        
+        .dash-clone {
+            position: absolute;
+            pointer-events: none;
+            animation: dashCloneEffect 1s ease-out forwards;
+        }
+
+        .dash-cooldown {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Add dash function
+function performDash(player, direction) {
+    const currentTime = Date.now();
+    const cooldownDuration = 10000; // 10 seconds cooldown
+
+    // Check if dash is on cooldown
+    if (player.dashCooldown) {
+        const remainingCooldown = Math.ceil((player.lastDashTime + cooldownDuration - currentTime) / 1000);
+        showDashCooldown(player, remainingCooldown);
+        return;
+    }
+
+    // Create clone effect at current position
+    createDashClone(player);
+
+    // Calculate dash distance (20px in movement direction)
+    const dashDistance = direction * 20;
+    const newPosition = player.position + dashDistance;
+
+    // Get boundaries
+    const leftBoundary = gameState.arena.boundaries.left;
+    const rightBoundary = gameState.arena.boundaries.right - 150; // character width
+
+    // Apply dash with boundary check
+    if (newPosition < leftBoundary) {
+        player.position = leftBoundary;
+    } else if (newPosition > rightBoundary) {
+        player.position = rightBoundary;
+    } else {
+        player.position = newPosition;
+    }
+
+    // Update position visually
+    if (player.element) {
+        player.element.style.left = player.position + 'px';
+    }
+
+    // Set cooldown
+    player.dashCooldown = true;
+    player.lastDashTime = currentTime;
+
+    // Reset cooldown after 10 seconds
+    setTimeout(() => {
+        player.dashCooldown = false;
+    }, cooldownDuration);
+}
+
+// Create dash clone effect
+function createDashClone(player) {
+    if (!player.element) return;
+
+    // Create clone element
+    const clone = player.element.cloneNode(true);
+    clone.classList.add('dash-clone');
+    clone.style.left = player.position + 'px';
+    
+    // Add clone to arena
+    const arena = document.getElementById('fightArena');
+    if (arena) {
+        arena.appendChild(clone);
+        
+        // Remove clone after animation
+        setTimeout(() => {
+            clone.remove();
+        }, 1000);
+    }
+}
+
+// Show dash cooldown indicator
+function showDashCooldown(player, seconds) {
+    if (!player.element) return;
+
+    // Remove existing cooldown indicator if any
+    const existingCooldown = player.element.querySelector('.dash-cooldown');
+    if (existingCooldown) {
+        existingCooldown.remove();
+    }
+
+    // Create cooldown indicator
+    const cooldownIndicator = document.createElement('div');
+    cooldownIndicator.className = 'dash-cooldown';
+    cooldownIndicator.textContent = `Dash: ${seconds}s`;
+    player.element.appendChild(cooldownIndicator);
+
+    // Remove after 1 second
+    setTimeout(() => {
+        cooldownIndicator.remove();
+    }, 1000);
 }

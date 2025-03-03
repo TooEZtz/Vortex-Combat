@@ -283,7 +283,8 @@
   pointer-events: auto;
 }
 
-.character-preview.visible {
+.character-preview.visible,
+.character-preview.selected-character {
   display: block;
   animation: fadeIn 0.5s ease-in-out;
 }

@@ -1,11 +1,20 @@
-// Character selection state
+// Player selection state
 let selectedCharacters = {
     player1Character: null,
     player2Character: null
 };
 
-// List of available characters (not coming soon)
-const availableCharacters = ['scorpion', 'subzero', 'johnny', 'sonya'];
+// Grid navigation state
+let currentPosition = {
+    player1: 0,
+    player2: 0
+};
+
+// Available characters
+const characters = [
+    { id: 'curse-or', name: 'CURSE-OR' },
+    { id: 'reign', name: 'REIGN' }
+];
 
 // Function to handle back button click with sound
 function goToMainMenu() {
@@ -31,17 +40,18 @@ function goToMainMenu() {
                     // Wait for the sound to play a bit before navigating
                     setTimeout(function() {
                         console.log('Navigating to main menu...');
-                        window.location.href = '../index.html';
+                        // Fix the path to splash.html
+                        window.location.href = 'splash.html';
                     }, 300);
                 }).catch(error => {
                     console.error('Error playing navigation sound:', error);
                     // Navigate anyway if sound fails
-                    window.location.href = '../index.html';
+                    window.location.href = 'splash.html';
                 });
             } else {
                 // Fallback if play() doesn't return a promise
                 setTimeout(function() {
-                    window.location.href = '../index.html';
+                    window.location.href = 'splash.html';
                 }, 300);
             }
         });
@@ -49,14 +59,14 @@ function goToMainMenu() {
         // If there's an error loading the sound, navigate anyway
         clickSound.addEventListener('error', function() {
             console.error('Error loading navigation sound');
-            window.location.href = '../index.html';
+            window.location.href = 'splash.html';
         });
         
         // Start loading the sound
         clickSound.load();
     } else {
         // If SoundManager is not available, just navigate
-        window.location.href = '../index.html';
+        window.location.href = 'splash.html';
     }
 }
 
@@ -79,6 +89,16 @@ function updateVsVisibility() {
 
 // Character preview functions
 function showCharacterPreview(imagePath, playerSide) {
+    // If a character is already selected for this player, don't change the preview
+    const playerNumber = playerSide === 'player1' ? 1 : 2;
+    const characterKey = `player${playerNumber}Character`;
+    
+    // If a character is already selected for this player, don't change the preview on hover
+    if (selectedCharacters[characterKey]) {
+        console.log(`Character already selected for ${playerSide}, not changing preview on hover`);
+        return;
+    }
+    
     const previewId = playerSide === 'player1' ? 'player1Preview' : 'player2Preview';
     const previewElement = document.getElementById(previewId);
     const previewImage = previewElement.querySelector('.preview-image');
@@ -100,15 +120,20 @@ function showCharacterPreview(imagePath, playerSide) {
 }
 
 function hideCharacterPreview(playerSide) {
-    // Only hide the preview if no character is selected for this player
-    const characterKey = playerSide === 'player1' ? 'player1Character' : 'player2Character';
+    // Get the player number from the playerSide
+    const player = playerSide === 'player1' ? 1 : 2;
+    const characterKey = `player${player}Character`;
     
-    // Check if a character is already selected for this player
+    // If a character is selected for this player, don't hide the preview
     if (selectedCharacters[characterKey]) {
         console.log(`Not hiding preview for ${playerSide} because character is selected: ${selectedCharacters[characterKey]}`);
-        return; // Don't hide if a character is selected
+        
+        // Instead, make sure the preview is visible and showing the correct character
+        forceCharacterPreview(player, selectedCharacters[characterKey]);
+        return;
     }
     
+    // If no character is selected, hide the preview
     const previewId = playerSide === 'player1' ? 'player1Preview' : 'player2Preview';
     const previewElement = document.getElementById(previewId);
     
@@ -127,9 +152,9 @@ function updateCharacterName(player, character) {
     
     if (character) {
         // Show the correct character name based on the selected character
-        if (character === 'scorpion' || character === 'johnny') {
+        if (character === 'curse-or') {
             previewName.textContent = 'CURSE-OR';
-        } else if (character === 'subzero' || character === 'sonya') {
+        } else if (character === 'reign') {
             previewName.textContent = 'REIGN';
         }
     } else {
@@ -143,10 +168,10 @@ function selectCharacter(player, character) {
     const previewId = player === 1 ? 'player1Preview' : 'player2Preview';
     const previewElement = document.getElementById(previewId);
     
-    // Check if the character is available (not coming soon)
-    if (!availableCharacters.includes(character)) {
-        console.log(`Character ${character} is not available yet`);
-        showMessage("This character is not available yet!");
+    // Check if the character is available
+    if (!characters.some(c => c.id === character)) {
+        console.log(`Character ${character} is not available`);
+        showMessage("This character is not available!");
         return;
     }
     
@@ -197,14 +222,7 @@ function selectCharacter(player, character) {
             enableFightButton();
             showMessage("Both players selected! Ready to fight!");
         } else {
-            // Get the correct character name based on the selected character
-            let characterName;
-            if (character === 'scorpion' || character === 'johnny') {
-                characterName = 'CURSE-OR';
-            } else if (character === 'subzero' || character === 'sonya') {
-                characterName = 'REIGN';
-            }
-            showMessage(`Player ${player} selected ${characterName}`);
+            showMessage(`Player ${player} selected ${character === 'curse-or' ? 'CURSE-OR' : 'REIGN'}`);
         }
 
     } catch (error) {
@@ -246,53 +264,8 @@ function goToMapSelection() {
             sessionStorage.getItem('player1Character'),
             sessionStorage.getItem('player2Character'));
         
-        // Play click sound and navigate after it completes
-        if (window.SoundManager) {
-            // Create a new audio element specifically for this navigation
-            const clickSound = new Audio('../assests/audio/button_click.mp3');
-            clickSound.volume = 0.5;
-            
-            // When the sound can play, play it and set up navigation
-            clickSound.addEventListener('canplaythrough', function() {
-                console.log('Navigation sound loaded, playing...');
-                
-                // Play the sound
-                const playPromise = clickSound.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        console.log('Navigation sound played, waiting before redirect...');
-                        
-                        // Wait for the sound to play a bit before navigating
-                        setTimeout(function() {
-                            console.log('Navigating to map selection...');
-                            window.location.href = 'maps.html';
-                        }, 300);
-                    }).catch(error => {
-                        console.error('Error playing navigation sound:', error);
-                        // Navigate anyway if sound fails
-                        window.location.href = 'maps.html';
-                    });
-                } else {
-                    // Fallback if play() doesn't return a promise
-                    setTimeout(function() {
-                        window.location.href = 'maps.html';
-                    }, 300);
-                }
-            });
-            
-            // If there's an error loading the sound, navigate anyway
-            clickSound.addEventListener('error', function() {
-                console.error('Error loading navigation sound');
-                window.location.href = 'maps.html';
-            });
-            
-            // Start loading the sound
-            clickSound.load();
-        } else {
-            // If SoundManager is not available, just navigate
-            window.location.href = 'maps.html';
-        }
+        // Navigate to maps screen
+        window.location.href = 'maps.html';
     }
 }
 
@@ -301,13 +274,11 @@ function forceCharacterPreview(player, character) {
     const previewId = player === 1 ? 'player1Preview' : 'player2Preview';
     const previewElement = document.getElementById(previewId);
     
-    // Make sure the preview element exists
     if (!previewElement) {
         console.error(`Preview element not found for Player ${player}`);
         return;
     }
     
-    // Get the preview image element
     const previewImageElement = previewElement.querySelector('.preview-image');
     if (!previewImageElement) {
         console.error(`Preview image element not found for Player ${player}`);
@@ -316,16 +287,14 @@ function forceCharacterPreview(player, character) {
     
     // Determine the correct image path based on the character
     let imagePath;
-    if (character === 'scorpion' || character === 'johnny') {
-        // CURSE-OR characters use character_1 folder
+    if (character === 'curse-or') {
         imagePath = player === 1 
             ? '../assests/players/character_1/Right_idle.gif' 
             : '../assests/players/character_1/Left_idle.gif';
-    } else if (character === 'subzero' || character === 'sonya') {
-        // REIGN characters use character_2 folder
+    } else if (character === 'reign') {
         imagePath = player === 1 
-            ? '../assests/players/character_2/Right_idle.gif' 
-            : '../assests/players/character_2/Left_idle.gif';
+            ? '../assests/players/character_2/2_Right_idle.gif' 
+            : '../assests/players/character_2/2_Left_idle.gif';
     } else {
         console.error(`Unknown character: ${character}`);
         return;
@@ -419,4 +388,101 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 100);
         });
     });
+
+    // Initialize keyboard navigation
+    setupKeyboardNavigation();
+    updateSelectionDisplay();
 });
+
+function setupKeyboardNavigation() {
+    document.addEventListener('keydown', (event) => {
+        // Player 1 controls (WASD + Space)
+        if (!selectedCharacters.player1Character) {
+            switch(event.key.toLowerCase()) {
+                case 'a':
+                    navigateGrid('player1', -1);
+                    break;
+                case 'd':
+                    navigateGrid('player1', 1);
+                    break;
+                case ' ':
+                    selectCurrentCharacter('player1');
+                    break;
+            }
+        }
+        
+        // Player 2 controls (Arrow keys + Enter)
+        if (!selectedCharacters.player2Character) {
+            switch(event.key) {
+                case 'ArrowLeft':
+                    navigateGrid('player2', -1);
+                    break;
+                case 'ArrowRight':
+                    navigateGrid('player2', 1);
+                    break;
+                case 'Enter':
+                    selectCurrentCharacter('player2');
+                    break;
+            }
+        }
+    });
+}
+
+function navigateGrid(player, direction) {
+    const newPosition = currentPosition[player] + direction;
+    if (newPosition >= 0 && newPosition < characters.length) {
+        currentPosition[player] = newPosition;
+        updateSelectionHighlight(player);
+    }
+}
+
+function updateSelectionHighlight(player) {
+    // Remove previous highlights
+    document.querySelectorAll('.character-option').forEach(option => {
+        option.classList.remove(`${player}-selected`);
+    });
+    
+    // Add highlight to current position
+    const options = document.querySelectorAll('.character-option');
+    options[currentPosition[player]]?.classList.add(`${player}-selected`);
+}
+
+function selectCurrentCharacter(player) {
+    const selectedCharacter = characters[currentPosition[player]];
+    if (selectedCharacter) {
+        selectedCharacters[`${player}Character`] = selectedCharacter.id;
+        updateSelectionDisplay();
+        checkIfBothPlayersSelected();
+    }
+}
+
+function updateSelectionDisplay() {
+    // Update Player 1 selection display
+    const player1Display = document.querySelector('.player1-selection .selected-character');
+    if (player1Display) {
+        player1Display.textContent = selectedCharacters.player1Character 
+            ? characters.find(c => c.id === selectedCharacters.player1Character).name 
+            : 'Not Selected';
+    }
+    
+    // Update Player 2 selection display
+    const player2Display = document.querySelector('.player2-selection .selected-character');
+    if (player2Display) {
+        player2Display.textContent = selectedCharacters.player2Character 
+            ? characters.find(c => c.id === selectedCharacters.player2Character).name 
+            : 'Not Selected';
+    }
+}
+
+function checkIfBothPlayersSelected() {
+    if (selectedCharacters.player1Character && selectedCharacters.player2Character) {
+        // Store selections in session storage
+        sessionStorage.setItem('player1Character', selectedCharacters.player1Character);
+        sessionStorage.setItem('player2Character', selectedCharacters.player2Character);
+        
+        // Redirect to fight screen after a short delay
+        setTimeout(() => {
+            window.location.href = 'fight.html';
+        }, 1000);
+    }
+}

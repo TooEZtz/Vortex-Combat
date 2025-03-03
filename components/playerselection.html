@@ -23,7 +23,7 @@
                 </div>
                 <div class="character-grid">
                     <div class="character-card selectable" 
-                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'scorpion')" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'curse-or')" 
                          onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_1/Right_idle.gif', 'player1')" 
                          onmouseout="if(!selectedCharacters.player1Character) hideCharacterPreview('player1')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_1/preview.gif'); background-size: cover; background-position: center;">
@@ -32,8 +32,8 @@
                         <div class="character-name font-display">CURSE-OR</div>
                     </div>
                     <div class="character-card selectable" 
-                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'subzero')" 
-                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/Right_idle.gif', 'player1')" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(1, 'reign')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/2_Right_idle.gif', 'player1')" 
                          onmouseout="if(!selectedCharacters.player1Character) hideCharacterPreview('player1')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_2/2_right_preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
@@ -80,7 +80,7 @@
                 </div>
                 <div class="character-grid">
                     <div class="character-card selectable" 
-                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'johnny')" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'curse-or')" 
                          onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_1/Left_idle.gif', 'player2')" 
                          onmouseout="if(!selectedCharacters.player2Character) hideCharacterPreview('player2')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_1/right_preview.gif'); background-size: cover; background-position: center;">
@@ -89,8 +89,8 @@
                         <div class="character-name font-display">CURSE-OR</div>
                     </div>
                     <div class="character-card selectable" 
-                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'sonya')" 
-                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/Left_idle.gif', 'player2')" 
+                         onmousedown="SoundManager.playClickSound(); selectCharacter(2, 'reign')" 
+                         onmouseover="SoundManager.playHoverSound(); showCharacterPreview('../assests/players/character_2/2_Left_idle.gif', 'player2')" 
                          onmouseout="if(!selectedCharacters.player2Character) hideCharacterPreview('player2')">
                         <div class="character-portrait" style="background-image: url('../assests/players/character_2/2_Left_Preview.gif'); background-size: cover; background-position: center;">
                             <div class="vignette-overlay"></div>
@@ -102,14 +102,14 @@
                             <div class="coming-soon-overlay"></div>
                             <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name font-display">Jax</div>
+                        <div class="character-name font-display">Henry</div>
                     </div>
                     <div class="character-card coming-soon">
                         <div class="character-portrait" style="background-image: url('../assests/players/coming.avif'); background-size: cover; background-position: center;">
                             <div class="coming-soon-overlay"></div>
                             <div class="coming-soon-text font-display">COMING SOON</div>
                         </div>
-                        <div class="character-name font-display">Kung Lao</div>
+                        <div class="character-name font-display">Lao-gan</div>
                     </div>
                 </div>
             </div>
@@ -127,5 +127,34 @@
         <div id="selectionMessage" class="font-display"></div>
     </div>
     <script src="../js/playerselection.js"></script>
+    <script>
+        // Ensure audio is initialized properly
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add a click handler to the document to enable audio
+            const initAudio = function() {
+                console.log('User interaction detected, initializing audio...');
+                
+                // Start background music
+                if (window.SoundManager) {
+                    SoundManager.playBackgroundMusic('characterSelect');
+                }
+                
+                // Remove this event listener
+                document.removeEventListener('click', initAudio);
+                document.removeEventListener('keydown', initAudio);
+            };
+            
+            // Listen for both click and keydown events
+            document.addEventListener('click', initAudio);
+            document.addEventListener('keydown', initAudio);
+            
+            // Also try to play music after a short delay
+            setTimeout(function() {
+                if (window.SoundManager) {
+                    SoundManager.playBackgroundMusic('characterSelect');
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

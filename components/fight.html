@@ -36,10 +36,7 @@
         <div id="fightArena">
             <!-- Background container will be added here by JavaScript -->
             <div id="player1" class="fighter">
-                <div class="fighter-name">Curse-er</div>
-                <div class="fighter-image">
-                    P1
-                </div>
+                <div class="fighter-image"></div>
             </div>
             
             <div id="fightStatus">
@@ -48,10 +45,7 @@
             </div>
             
             <div id="player2" class="fighter">
-                <div class="fighter-name">Reign</div>
-                <div class="fighter-image">
-                    P2
-                </div>
+                <div class="fighter-image"></div>
             </div>
         </div>
         
@@ -86,10 +80,6 @@
                 <button id="changeCharactersButton" 
                         onmousedown="SoundManager.playClickSound(); setTimeout(function() { changeCharacters(); }, 300);" 
                         onmouseover="SoundManager.playHoverSound()">CHANGE FIGHTERS</button>
-                
-                <button id="debugButton" 
-                        onmousedown="SoundManager.playClickSound(); setTimeout(function() { showSessionStorage(); }, 300);" 
-                        onmouseover="SoundManager.playHoverSound()">DEBUG</button>
             </div>
         </div>
     </div>
@@ -99,81 +89,141 @@
     <audio id="victorySound" src="../assets/sounds/victory.mp3" preload="auto"></audio>
     
     <script>
+        // Initialize audio when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize audio system
+            function initAudio() {
+                console.log('Initializing audio for fight screen...');
+                
+                // Try to play the background music
+                if (window.SoundManager) {
+                    window.SoundManager.playFightMusic();
+                    console.log('Fight music started');
+                }
+            }
+            
+            // Set up event listeners for user interaction to unlock audio
+            document.addEventListener('click', function() {
+                initAudio();
+            }, { once: true });
+            
+            document.addEventListener('keydown', function() {
+                initAudio();
+            }, { once: true });
+            
+            // Also try to play after a short delay
+            setTimeout(function() {
+                initAudio();
+            }, 1000);
+        });
+        
+        // Function to debug images
+        function debugImages() {
+            console.log('Debugging images...');
+            
+            // Get player elements
+            const player1Element = document.getElementById('player1');
+            const player2Element = document.getElementById('player2');
+            const player1Image = document.querySelector('#player1 .fighter-image');
+            const player2Image = document.querySelector('#player2 .fighter-image');
+            
+            // Log image properties
+            console.log('Player 1 image properties:', {
+                backgroundImage: player1Image.style.backgroundImage,
+                backgroundSize: player1Image.style.backgroundSize,
+                backgroundPosition: player1Image.style.backgroundPosition,
+                backgroundRepeat: player1Image.style.backgroundRepeat,
+                backgroundColor: player1Image.style.backgroundColor,
+                width: player1Image.style.width,
+                height: player1Image.style.height,
+                transform: player1Image.style.transform,
+                classes: player1Element.className
+            });
+            
+            console.log('Player 2 image properties:', {
+                backgroundImage: player2Image.style.backgroundImage,
+                backgroundSize: player2Image.style.backgroundSize,
+                backgroundPosition: player2Image.style.backgroundPosition,
+                backgroundRepeat: player2Image.style.backgroundRepeat,
+                backgroundColor: player2Image.style.backgroundColor,
+                width: player2Image.style.width,
+                height: player2Image.style.height,
+                transform: player2Image.style.transform,
+                classes: player2Element.className
+            });
+            
+            // Try to fix Player 2 image if it's not showing
+            if (!player2Image.style.backgroundImage || player2Image.style.backgroundImage === 'none') {
+                const player2Id = sessionStorage.getItem('player2Character') || 'subzero';
+                let player2ImagePath;
+                
+                if (player2Id === 'scorpion') {
+                    player2ImagePath = '../assests/players/character_1/Right_idle.gif';
+                } else if (player2Id === 'subzero') {
+                    player2ImagePath = '../assests/players/character_2/2_Right_idle.gif';
+                } else {
+                    player2ImagePath = '../assests/players/character_2/2_Right_idle.gif';
+                }
+                
+                console.log('Fixing Player 2 image with path:', player2ImagePath);
+                
+                player2Image.style.backgroundImage = `url(${player2ImagePath})`;
+                player2Image.style.backgroundSize = 'contain';
+                player2Image.style.backgroundPosition = 'center bottom';
+                player2Image.style.backgroundRepeat = 'no-repeat';
+                player2Image.style.backgroundColor = 'transparent';
+            }
+            
+            // Remove any facing classes that might interfere
+            player1Element.classList.remove('facing-left', 'facing-right');
+            player2Element.classList.remove('facing-left', 'facing-right');
+            
+            // Get player positions to determine orientation
+            const player1Position = parseInt(player1Element.style.left) || 200;
+            const player2Position = parseInt(player2Element.style.left) || 800;
+            const player1IsOnRight = player1Position > player2Position;
+            
+            console.log('Player positions:', player1Position, player2Position, 'P1 on right:', player1IsOnRight);
+            
+            // Set the correct orientation based on relative positions
+            if (player1IsOnRight) {
+                // Player 1 is on the right, should face left (towards player 2)
+                player1Image.style.transform = 'scaleX(-1)';
+                
+                // Player 2 is on the left, should face right (towards player 1)
+                const player2Id = sessionStorage.getItem('player2Character') || 'subzero';
+                if (player2Id === 'subzero') {
+                    player2Image.style.transform = 'scaleX(1) scale(0.85)';
+                } else {
+                    player2Image.style.transform = 'scaleX(1)';
+                }
+            } else {
+                // Player 1 is on the left, should face right (towards player 2)
+                player1Image.style.transform = 'scaleX(1)';
+                
+                // Player 2 is on the right, should face left (towards player 1)
+                const player2Id = sessionStorage.getItem('player2Character') || 'subzero';
+                if (player2Id === 'subzero') {
+                    player2Image.style.transform = 'scaleX(-1) scale(0.85)';
+                } else {
+                    player2Image.style.transform = 'scaleX(-1)';
+                }
+            }
+            
+            // Show alert with debug info
+            alert('Image debug info logged to console. Check the console for details. Orientation and sizing have been fixed based on player positions.');
+        }
+        
         // Function to show session storage data
         function showSessionStorage() {
-            console.log('Showing session storage...');
+            const player1Character = sessionStorage.getItem('player1Character');
+            const player2Character = sessionStorage.getItem('player2Character');
+            const selectedMap = sessionStorage.getItem('selectedMap');
             
-            // Play click sound
-            if (window.SoundManager) {
-                // Create a new audio element specifically for this action
-                const clickSound = new Audio('../assests/audio/button_click.mp3');
-                clickSound.volume = 0.5;
-                
-                // When the sound can play, play it and then show the alert
-                clickSound.addEventListener('canplaythrough', function() {
-                    console.log('Button sound loaded, playing...');
-                    
-                    // Play the sound
-                    const playPromise = clickSound.play();
-                    
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            console.log('Button sound played, showing alert...');
-                            
-                            // Wait for the sound to play a bit before showing alert
-                            setTimeout(function() {
-                                let storage = '';
-                                for (let i = 0; i < sessionStorage.length; i++) {
-                                    const key = sessionStorage.key(i);
-                                    storage += `${key}: ${sessionStorage.getItem(key)}\n`;
-                                }
-                                alert(storage);
-                            }, 300);
-                        }).catch(error => {
-                            console.error('Error playing button sound:', error);
-                            // Show alert anyway if sound fails
-                            let storage = '';
-                            for (let i = 0; i < sessionStorage.length; i++) {
-                                const key = sessionStorage.key(i);
-                                storage += `${key}: ${sessionStorage.getItem(key)}\n`;
-                            }
-                            alert(storage);
-                        });
-                    } else {
-                        // Fallback if play() doesn't return a promise
-                        setTimeout(function() {
-                            let storage = '';
-                            for (let i = 0; i < sessionStorage.length; i++) {
-                                const key = sessionStorage.key(i);
-                                storage += `${key}: ${sessionStorage.getItem(key)}\n`;
-                            }
-                            alert(storage);
-                        }, 300);
-                    }
-                });
-                
-                // If there's an error loading the sound, show alert anyway
-                clickSound.addEventListener('error', function() {
-                    console.error('Error loading button sound');
-                    let storage = '';
-                    for (let i = 0; i < sessionStorage.length; i++) {
-                        const key = sessionStorage.key(i);
-                        storage += `${key}: ${sessionStorage.getItem(key)}\n`;
-                    }
-                    alert(storage);
-                });
-                
-                // Start loading the sound
-                clickSound.load();
-            } else {
-                // If SoundManager is not available, just show alert
-                let storage = '';
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const key = sessionStorage.key(i);
-                    storage += `${key}: ${sessionStorage.getItem(key)}\n`;
-                }
-                alert(storage);
-            }
+            alert(`Current session storage:
+Player 1: ${player1Character || 'Not set'}
+Player 2: ${player2Character || 'Not set'}
+Map: ${selectedMap || 'Not set'}`);
         }
 
         // Function to change characters
@@ -283,6 +333,7 @@
         }
     </script>
     
+    <!-- Use the single fight.js file -->
     <script src="../js/fight.js"></script>
 </body>
 </html> 

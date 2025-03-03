@@ -151,22 +151,113 @@ body {
   z-index: -1; /* Place behind the fighters */
 }
 
+/* Base fighter styles */
 .fighter {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 300px;
   position: absolute;
-  bottom: 100px;
+  bottom: 50px;
   transition: transform 0.1s ease, left 0.1s ease;
+  z-index: 10;
+  pointer-events: none; /* Allow clicks to pass through the fighter container */
 }
 
-.fighter-left {
-  transform: scaleX(-1); /* Flip player 1 to face right */
+/* Fighter images and hitbox */
+.fighter-image {
+  width: 200px;
+  height: 300px;
+  position: relative;
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent !important;
+  background-size: contain !important;
+  background-position: center bottom !important;
+  background-repeat: no-repeat !important;
+  pointer-events: auto; /* Re-enable clicks on the actual fighter image */
 }
 
-.fighter.facing-left {
-  transform: scaleX(-1);
+/* Add hitbox for damage area */
+.fighter-image::before {
+  content: '';
+  position: absolute;
+  width: 25%;  /* Quarter of the collision area */
+  height: 30%;  /* Smaller vertical hitbox */
+  top: 35%;    /* Positioned to match character torso */
+  left: 37.5%; /* Centered horizontally */
+  pointer-events: none;
+}
+
+/* Adjust hitbox for attacking animations */
+.fighter.punch .fighter-image::before {
+  width: 30%;
+  left: 45%; /* Move hitbox forward during punch */
+}
+
+.fighter.kick .fighter-image::before {
+  width: 35%;
+  height: 20%;
+  top: 45%;
+  left: 45%; /* Move hitbox forward during kick */
+}
+
+/* Player 1 specific styles */
+#player1 .fighter-image {
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: absolute;
+  bottom: 0;
+}
+
+/* Player 2 specific styles */
+#player2 .fighter-image {
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: absolute;
+  bottom: 0;
+}
+
+/* Special scaling for Reign character */
+[data-character="reign"] .fighter-image {
+  transform: scale(0.85);
+  will-change: transform;
+}
+
+/* Remove all other facing classes that might interfere */
+.fighter.facing-left, .fighter.facing-right {
+  /* These classes should not affect the transform */
+}
+
+/* Ensure animations don't override the facing direction */
+.fighter.jumping .fighter-image,
+.fighter.punch .fighter-image,
+.fighter.kick .fighter-image,
+.fighter.hit .fighter-image,
+.fighter.guarding .fighter-image,
+.fighter.blocked .fighter-image,
+.fighter.spear .fighter-image,
+.fighter.firebreath .fighter-image,
+.fighter.iceball .fighter-image,
+.fighter.slide .fighter-image,
+.fighter.superpunch .fighter-image,
+.fighter.superkick .fighter-image {
+  /* Keep existing animation properties but don't override the scaleX for facing */
+  animation-name: inherit;
+  animation-duration: inherit;
+  animation-timing-function: inherit;
+  animation-iteration-count: inherit;
+  transform-origin: bottom center;
+  will-change: transform;
 }
 
 .fighter-name {
@@ -180,32 +271,6 @@ body {
   width: 100%;
   text-align: center;
   letter-spacing: 1px;
-}
-
-.fighter-image {
-  width: 100px;
-  height: 200px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 3px solid #ff0000;
-  border-radius: 5px;
-  position: relative;
-  margin-bottom: 20px;
-  transition: all 0.2s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #000;
-  font-weight: bold;
-}
-
-#player1 .fighter-image {
-  background-color: rgba(255, 0, 0, 0.7);
-  color: white;
-}
-
-#player2 .fighter-image {
-  background-color: rgba(0, 0, 255, 0.7);
-  color: white;
 }
 
 #fightStatus {
@@ -362,42 +427,37 @@ body {
 
 /* Fighting animations */
 @keyframes jump {
-  0% { transform: translateY(0); background-color: yellow; }
-  50% { transform: translateY(-100px); background-color: orange; }
-  100% { transform: translateY(0); background-color: yellow; }
+  0% { translate: 0 0; }
+  50% { translate: 0 -200px; }
+  100% { translate: 0 0; }
 }
 
 @keyframes punch {
-  0% { transform: translateX(0); background-color: red; }
-  25% { transform: translateX(20px); background-color: darkred; }
-  50% { transform: translateX(30px); background-color: red; }
-  100% { transform: translateX(0); background-color: inherit; }
+  0% { transform: translateX(0); }
+  25% { transform: translateX(20px); }
+  50% { transform: translateX(30px); }
+  100% { transform: translateX(0); }
 }
 
 @keyframes kick {
-  0% { transform: rotate(0deg); background-color: green; }
-  25% { transform: rotate(15deg); background-color: darkgreen; }
-  50% { transform: rotate(30deg); background-color: green; }
-  100% { transform: rotate(0deg); background-color: inherit; }
-}
-
-@keyframes hit {
-  0% { filter: brightness(1); transform: translateX(0); background-color: white; }
-  25% { filter: brightness(2); transform: translateX(-10px); background-color: yellow; }
-  50% { filter: brightness(2); transform: translateX(10px); background-color: orange; }
-  75% { filter: brightness(2); transform: translateX(-5px); background-color: yellow; }
-  100% { filter: brightness(1); transform: translateX(0); background-color: inherit; }
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(30deg); }
+  100% { transform: rotate(0deg); }
 }
 
 @keyframes guard {
-  0% { transform: scaleX(0.9); background-color: blue; }
-  50% { transform: scaleX(0.8); background-color: lightblue; filter: brightness(1.5); }
-  100% { transform: scaleX(0.9); background-color: blue; }
+  0% { transform: scaleX(0.9); }
+  50% { transform: scaleX(0.8); filter: brightness(1.5); }
+  100% { transform: scaleX(0.9); }
 }
 
 /* Apply animations to fighter states */
 .fighter.jumping .fighter-image {
   animation: jump 0.5s ease;
+  transform-origin: bottom center;
+  will-change: transform;
+  animation-fill-mode: both;
 }
 
 .fighter.punch .fighter-image {
@@ -408,22 +468,31 @@ body {
   animation: kick 0.3s ease;
 }
 
+.fighter.hit {
+    animation: none !important; /* Remove any existing animations */
+    transition: left 0.1s ease-out; /* Smooth transition for pushback */
+}
+
 .fighter.hit .fighter-image {
-  animation: hit 0.2s ease;
+    animation: none !important; /* Remove any existing animations */
+    will-change: transform, background-image; /* Optimize performance */
+}
+
+/* Remove any existing hit animation keyframes that might cause enlargement */
+@keyframes hitEffect {
+    0% { transform: scale(1); }
+    100% { transform: scale(1); }
 }
 
 .fighter.guarding .fighter-image {
   transform: scaleX(0.8);
-  background-color: blue;
   filter: brightness(1.5);
-  border-color: #00ffff;
 }
 
 .fighter.blocked .fighter-image {
   animation: none;
   filter: brightness(1.5);
-  border-color: #00ffff;
-  box-shadow: 0 0 15px #00ffff;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
 }
 
 /* Game over screen */
@@ -546,21 +615,94 @@ body {
   100% { opacity: 0; transform: translateY(-20px); }
 }
 
-/* Debug styles to make positions visible */
+/* Basic arena styles */
 #fightArena {
   position: relative;
-  border-bottom: 2px dashed rgba(255, 255, 255, 0.3);
   min-height: 400px;
 }
 
-/* Add position indicators */
-.fighter::after {
-  content: attr(style);
+/* Add collision prevention */
+#player1 {
+  left: 50px; /* Minimum distance from left edge */
+  right: auto;
+  z-index: 1;
+}
+
+#player2 {
+  right: 50px; /* Minimum distance from right edge */
+  left: auto;
+  z-index: 2;
+}
+
+/* Ensure minimum distance between players */
+#player1.facing-right {
+  left: 50px;
+}
+
+#player2.facing-left {
+  right: 50px;
+}
+
+/* Prevent players from crossing each other */
+#player1.facing-right + #player2.facing-left {
+  margin-right: 150px; /* Increased minimum distance */
+}
+
+#player2.facing-left + #player1.facing-right {
+  margin-left: 150px; /* Increased minimum distance */
+}
+
+/* Add collision zone */
+#player1::after,
+#player2::after {
+  content: '';
   position: absolute;
-  bottom: -20px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  width: 150px; /* Increased collision zone */
+  height: 100%;
+  top: 0;
+  pointer-events: none;
+}
+
+#player1::after {
+  right: -150px;
+}
+
+#player2::after {
+  left: -150px;
+}
+
+/* Prevent overlap during movement */
+#player1.facing-right {
+  transition: left 0.1s ease, margin-right 0.1s ease;
+}
+
+#player2.facing-left {
+  transition: right 0.1s ease, margin-left 0.1s ease;
+}
+
+/* Attack text effect */
+.attack-text {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Press Start 2P', cursive;
+  color: #ff0;
+  text-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+  pointer-events: none;
+  animation: attackTextEffect 0.5s ease-out forwards;
+  letter-spacing: 2px;
+}
+
+@keyframes attackTextEffect {
+  0% { 
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(-50%) translateY(-30px);
+    opacity: 0;
+  }
 }

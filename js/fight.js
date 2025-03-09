@@ -165,15 +165,62 @@ let comboState = {
         sequence: [],
         lastAttackTime: 0,
         isComboActive: false,
-        isInComboRecovery: false
+        isInComboRecovery: false,
+        currentComboCount: 0
     },
     player2: {
         sequence: [],
         lastAttackTime: 0,
         isComboActive: false,
-        isInComboRecovery: false
+        isInComboRecovery: false,
+        currentComboCount: 0
     }
 };
+
+// Add this to the top of the file after gameState declaration
+const COMBO_STYLES = `
+    .fighter-image {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: center bottom;
+        will-change: transform;
+    }
+
+    .fighter.in-combo {
+        z-index: 100;
+    }
+
+    .fighter-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    @keyframes uppercut-launch {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-300px); }
+        100% { transform: translateY(-300px); }
+    }
+
+    @keyframes ground-fall {
+        0% { transform: translateY(-300px); }
+        100% { transform: translateY(0); }
+    }
+
+    .uppercut-victim {
+        animation: uppercut-launch 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .ground-fall {
+        animation: ground-fall 0.2s cubic-bezier(0.6, 0, 0.8, 1) forwards;
+    }
+`;
+
+// Add the styles to the document
+document.head.insertAdjacentHTML('beforeend', `<style>${COMBO_STYLES}</style>`);
 
 function initGameEngine(player1Character, player2Character) {
     // Set up game arena
@@ -676,197 +723,127 @@ function stopGuardPlayer(player) {
     });
 }
 
+// Update attack player to handle both normal attacks and combos
 function attackPlayer(player, attackType) {
     const isPlayer1 = player === gameState.player1;
     
-    // Don't start a new attack if already attacking
-    if (player.isAttacking) {
-        return;
-    }
-    
-    // Don't allow attacks while jumping or dodging
-    if (player.isJumping || player.isDodging) {
-        return;
-    }
-    
-    // Don't allow attacks while guarding
-    if (player.isGuarding || (isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
-        return;
-    }
-    
-    // Don't allow attacks during combo recovery
-    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
-    if (playerComboState.isInComboRecovery) {
+    // Don't allow attacks during combo or recovery
+    if (player.isAttacking || player.isJumping || player.isDodging || 
+        player.isGuarding || player.isInCombo ||
+        (isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
         return;
     }
     
     player.isAttacking = true;
     player.attackType = attackType;
-    
-    const playerImage = player.element?.querySelector('.fighter-image');
-    if (!playerImage) return;
-    
-    // Get the character ID
-    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
-    
-    // Preserve the correct orientation
-    const player1IsOnRight = gameState.player1.position > gameState.player2.position;
-    
-    // Update combo sequence
+
+    // Handle combo system
+    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
     const currentTime = Date.now();
-    const comboTimeout = 1500; // 1.5 seconds for combo execution
-    
-    // Clear old combos if too much time has passed
-    if (currentTime - playerComboState.lastAttackTime > comboTimeout) {
+    const timeSinceLastAttack = currentTime - playerComboState.lastAttackTime;
+
+    // Reset combo if too much time has passed
+    if (timeSinceLastAttack > 1000) {
         playerComboState.sequence = [];
-        playerComboState.isComboActive = false;
-        playerComboState.isInComboRecovery = false;
-        console.log('Combo sequence reset due to timeout');
+        playerComboState.currentComboCount = 0;
     }
-    
-    let attackPath;
-    if (characterId === 'curse-or') {
-        if (attackType === 'punch') {
-            attackPath = '../assests/players/character_1/Right_Punch_1-ezgif.com-gif-maker.gif';
-        } else if (attackType === 'kick') {
-            attackPath = '../assests/players/character_1/Right_Kick1-ezgif.com-gif-maker.gif';
-        }
-    } else if (characterId === 'reign') {
-        if (attackType === 'punch') {
-            attackPath = '../assests/players/character_2/2_Rightpunch_1.gif';
-        } else if (attackType === 'kick') {
-            attackPath = '../assests/players/character_2/2_Right_kick_1.gif';
-        }
-    }
-    
-    // Update the image with animation
-    if (attackPath) {
-        playerImage.style.backgroundImage = `url(${attackPath})`;
+
+    // Add attack to combo sequence
+    playerComboState.sequence.push(attackType);
+    playerComboState.lastAttackTime = currentTime;
+    playerComboState.currentComboCount++;
+
+    // Check for character-specific combos
+    checkCurseOrCombos(player);
+
+    // Only proceed with normal attack if not starting a combo
+    if (!player.isInCombo) {
+        const playerImage = player.element?.querySelector('.fighter-image');
+        if (!playerImage) return;
         
-        // Set orientation
-        if (isPlayer1) {
-            playerImage.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
-        } else {
-            playerImage.style.transform = player1IsOnRight ? 'scaleX(1) scale(0.85)' : 'scaleX(-1) scale(0.85)';
-        }
+        // Get the character ID and set attack animation
+        const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+        let attackPath = getAttackAnimationPath(characterId, attackType);
         
-        // Determine the defender
-        const defender = isPlayer1 ? gameState.player2 : gameState.player1;
-        
-        // Calculate distance between players
-        const distance = Math.abs(player.position - defender.position);
-        
-        // Check if players are close enough for a hit
-        if (distance < 50) {
-            // Check guard state first
-            const defenderGuardKey = isPlayer1 ? gameState.keys.player2.guard : gameState.keys.player1.guard;
-            if (defender.isGuarding === true || defenderGuardKey === true) {
-                console.log('Attack blocked by guard!');
-                showBlockedEffect(defender);
-                return;
-            }
+        if (attackPath) {
+            playerImage.style.backgroundImage = `url(${attackPath})`;
             
-            // If not guarding, apply damage and track successful hit
-            console.log('Attack landed!');
-            applyDamage(defender, 10); // Regular attacks do 10 damage
-            showHitEffect(defender);
-            showAttackText(player, attackType); // Show attack text only on successful hit
+            // Determine the defender
+            const defender = isPlayer1 ? gameState.player2 : gameState.player1;
+            const distance = Math.abs(player.position - defender.position);
             
-            // Track successful hit for combo
-            playerComboState.sequence.push(attackType);
-            playerComboState.lastAttackTime = currentTime;
+            // Check for nearby clones
+            const clones = document.querySelectorAll('.dash-clone');
+            let hitClone = false;
             
-            // Keep only last 3 successful hits
-            if (playerComboState.sequence.length > 3) {
-                playerComboState.sequence.shift();
-            }
-            
-            // Check for combo sequence
-            const sequence = playerComboState.sequence;
-            const isComboSequence = sequence.length === 3 && 
-                                  sequence[0] === 'punch' && 
-                                  sequence[1] === 'punch' && 
-                                  sequence[2] === 'kick';
-            
-            if (isComboSequence) {
-                console.log('Combo sequence completed!');
-                // Use combo animation
-                if (characterId === 'curse-or') {
-                    attackPath = '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif';
+            clones.forEach(clone => {
+                if (clone.dataset.originalPlayer !== (isPlayer1 ? 'player1' : 'player2')) {
+                    const clonePosition = parseInt(clone.style.left);
+                    const distanceToClone = Math.abs(player.position - clonePosition);
                     
-                    // Add multi-stage combo effects
-                    const defenderElement = defender.element;
-                    if (defenderElement) {
-                        // Stage 1: Uppercut
-                        defenderElement.style.animation = 'uppercutEffect 0.5s ease';
-                        applyDamage(defender, 10); // First hit damage
+                    if (distanceToClone < 100) {
+                        // Increment hit count
+                        const hitCount = parseInt(clone.dataset.hitCount || '0') + 1;
+                        clone.dataset.hitCount = hitCount.toString();
                         
-                        // Stage 2: Ground Smash (after uppercut)
-                        setTimeout(() => {
-                            defenderElement.style.animation = 'groundSmashEffect 0.3s ease';
-                            applyDamage(defender, 10); // Second hit damage
-                        }, 500);
+                        // Add hit effect
+                        clone.classList.remove('hit');
+                        void clone.offsetWidth; // Force reflow
+                        clone.classList.add('hit');
                         
-                        // Stage 3: Multiple Kicks with Displacement
-                        setTimeout(() => {
-                            defenderElement.style.animation = 'kickDisplaceEffect 1s ease';
-                            applyDamage(defender, 10); // Third hit damage
-                        }, 800);
+                        // Heal the clone's original player
+                        const originalPlayer = clone.dataset.originalPlayer === 'player1' ? gameState.player1 : gameState.player2;
+                        healPlayer(originalPlayer, 5);
                         
-                        // Reset animation after all stages
-                        setTimeout(() => {
-                            defenderElement.style.animation = '';
-                        }, 1800);
+                        // Remove clone after 5 hits or if animation is done
+                        if (hitCount >= 5) {
+                            setTimeout(() => {
+                                if (clone && clone.parentElement) {
+                                    clone.remove();
+                                }
+                            }, 500);
+                        }
+                        
+                        hitClone = true;
                     }
-                } else if (characterId === 'reign') {
-                    attackPath = '../assests/players/character_2/2_Right_combo.gif';
                 }
-                
-                // Update image with combo animation
-                playerImage.style.backgroundImage = `url(${attackPath})`;
-                playerImage.classList.add('combo-animation');
-                
-                // Show combo effect
-                showComboEffect(defender);
-                
-                // Set combo recovery state
-                playerComboState.isInComboRecovery = true;
-                
-                // Reset to idle image after combo animation
-                setTimeout(() => {
-                    resetPlayerIdleImage(player);
-                    player.isAttacking = false;
-                    player.attackType = null;
-                    playerComboState.isComboActive = false;
-                    playerComboState.sequence = [];
-                    playerImage.classList.remove('combo-animation');
-                    // Add recovery time after combo
-                    setTimeout(() => {
-                        playerComboState.isInComboRecovery = false;
-                        console.log('Combo recovery complete');
-                    }, 1000);
-                }, 2000);
-            } else {
-                // Reset to idle image after regular attack animation
-                setTimeout(() => {
-                    resetPlayerIdleImage(player);
-                    player.isAttacking = false;
-                    player.attackType = null;
-                }, 250); // 250ms for regular attack animation
-            }
-        } else {
-            // Attack missed, reset combo sequence
-            playerComboState.sequence = [];
-            playerComboState.isComboActive = false;
+            });
             
-            // Reset to idle image after animation
+            // If no clone was hit, proceed with normal attack logic
+            if (!hitClone && distance < 50) {
+                if (defender.isGuarding) {
+                    showBlockedEffect(defender);
+                } else {
+                    applyDamage(defender, 10);
+                    showHitEffect(defender);
+                    showAttackText(player, attackType);
+                }
+            }
+            
+            // Reset to idle after attack
             setTimeout(() => {
-                resetPlayerIdleImage(player);
-                player.isAttacking = false;
-                player.attackType = null;
-            }, 250); // 250ms for regular attack animation
+                if (!player.isInCombo) {  // Only reset if not in combo
+                    resetPlayerIdleImage(player);
+                    player.isAttacking = false;
+                    player.attackType = null;
+                }
+            }, 250);
         }
     }
+}
+
+// Helper function to get attack animation path
+function getAttackAnimationPath(characterId, attackType) {
+    if (characterId === 'curse-or') {
+        return attackType === 'punch' 
+            ? '../assests/players/character_1/Right_Punch_1-ezgif.com-gif-maker.gif'
+            : '../assests/players/character_1/Right_Kick1-ezgif.com-gif-maker.gif';
+    } else if (characterId === 'reign') {
+        return attackType === 'punch'
+            ? '../assests/players/character_2/2_Rightpunch_1.gif'
+            : '../assests/players/character_2/2_Right_kick_1.gif';
+    }
+    return null;
 }
 
 function showBlockedEffect(player) {
@@ -879,6 +856,9 @@ function showBlockedEffect(player) {
             player.element.classList.remove('blocked');
         }, 200);
     }
+    
+    // Heal player when successfully blocking
+    healPlayer(player, 3);
     
     // Play block sound
     playSound('hit');
@@ -1510,8 +1490,19 @@ function getActiveKeysText() {
 function updateHealthBar(player) {
     // Update health bar with percentage
     if (player.healthBar) {
-        player.healthBar.style.width = player.health + '%';
-        player.healthBar.textContent = Math.round(player.health) + '%';
+        const percentage = player.health;
+        player.healthBar.style.width = percentage + '%';
+        
+        // Update color based on health percentage
+        if (percentage <= 20) {
+            player.healthBar.style.backgroundColor = '#e74c3c'; // Red for low health
+        } else if (percentage <= 50) {
+            player.healthBar.style.backgroundColor = '#f1c40f'; // Yellow for medium health
+        } else {
+            player.healthBar.style.backgroundColor = '#27ae60'; // Green for high health
+        }
+        
+        player.healthBar.textContent = Math.round(percentage) + '%';
     }
 }
 
@@ -1665,17 +1656,9 @@ function updatePlayerMovementImage(player, direction) {
         if (characterId !== 'curse-or') {
             // For Reign, we need to maintain the scale(0.85) transform
             if (player === gameState.player1) {
-                if (player1IsOnRight) {
-                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
-                } else {
-                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
-                }
+                playerImage.style.transform = 'scaleX(-1) scale(0.85)';
             } else {
-                if (player1IsOnRight) {
-                    playerImage.style.transform = 'scaleX(-1) scale(0.85)';
-                } else {
-                    playerImage.style.transform = 'scaleX(1) scale(0.85)';
-                }
+                playerImage.style.transform = 'scaleX(1) scale(0.85)';
             }
         }
     } else {
@@ -1743,29 +1726,34 @@ function resetPlayerIdleImage(player) {
                 playerImage.style.transform = player1IsOnRight ? 'scaleX(1)' : 'scaleX(-1)';
             }
         }
-    } else if (!idlePath) {
-        console.warn(`No valid idle image path found for ${player === gameState.player1 ? 'Player 1' : 'Player 2'} with character ID: ${characterId}`);
     }
 }
 
 // Add new function for combo effect
-function showComboEffect(player) {
+function showComboEffect(player, comboName) {
+    if (!player.element) return;
+    
     // Add combo animation class
-    if (player.element) {
-        player.element.classList.add('combo-hit');
-        
-        // Create combo text effect
-        const comboText = document.createElement('div');
-        comboText.className = 'combo-text';
-        comboText.textContent = '3x COMBO!';
-        player.element.appendChild(comboText);
-        
-        // Remove combo animation class and text after animation
-        setTimeout(() => {
-            player.element.classList.remove('combo-hit');
-            comboText.remove();
-        }, 500);
-    }
+    player.element.classList.add('combo-hit');
+    
+    // Create combo name text
+    const comboText = document.createElement('div');
+    comboText.className = 'combo-text';
+    comboText.textContent = comboName;
+    player.element.appendChild(comboText);
+    
+    // Create combo hit count
+    const hitCount = document.createElement('div');
+    hitCount.className = 'combo-count';
+    hitCount.textContent = 'COMBO x3!';
+    player.element.appendChild(hitCount);
+    
+    // Remove effects after animation
+    setTimeout(() => {
+        player.element.classList.remove('combo-hit');
+        comboText.remove();
+        hitCount.remove();
+    }, 1500);
     
     // Play combo sound
     playSound('combo');
@@ -1775,64 +1763,98 @@ function showComboEffect(player) {
 function addComboAnimationStyle() {
     const style = document.createElement('style');
     style.textContent = `
-        @keyframes slowCombo {
-            0% { background-position: 0% 0%; }
-            100% { background-position: -100% 0%; }
-        }
-        
-        .combo-animation {
-            animation: slowCombo 2s steps(15) forwards;
-        }
-
-        @keyframes uppercutEffect {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-100px); }
-            100% { transform: translateY(0); }
-        }
-
-        @keyframes groundSmashEffect {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(20px); }
-            100% { transform: translateY(0); }
-        }
-
-        @keyframes kickDisplaceEffect {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(100px); }
+        @keyframes comboHitEffect {
+            0% { transform: scale(1); filter: brightness(1); }
+            25% { transform: scale(1.1); filter: brightness(1.5); }
+            50% { transform: scale(1.2); filter: brightness(2); }
+            75% { transform: scale(1.1); filter: brightness(1.5); }
+            100% { transform: scale(1); filter: brightness(1); }
         }
 
         .combo-hit {
             animation: comboHitEffect 0.5s ease;
         }
 
-        @keyframes comboHitEffect {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
         .combo-text {
             position: absolute;
-            top: -50px;
+            top: -70px;
             left: 50%;
             transform: translateX(-50%);
-            color: #ff0;
+            color: #ff3366;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 
+                0 0 10px #ff3366,
+                0 0 20px #ff3366,
+                0 0 30px #ff3366;
+            animation: comboTextEffect 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .combo-count {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffcc00;
             font-size: 24px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            animation: comboTextEffect 1s ease-out forwards;
+            text-shadow: 
+                0 0 10px #ffcc00,
+                0 0 20px #ffcc00,
+                0 0 30px #ff9900;
+            animation: comboCountEffect 1.5s ease-out forwards;
             pointer-events: none;
+            z-index: 1000;
         }
 
         @keyframes comboTextEffect {
             0% { 
-                transform: translateX(-50%) translateY(0);
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 0;
+            }
+            20% {
+                transform: translateX(-50%) translateY(-20px) scale(1.2);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(-40px) scale(1.2);
                 opacity: 1;
             }
             100% { 
-                transform: translateX(-50%) translateY(-50px);
+                transform: translateX(-50%) translateY(-60px) scale(1);
                 opacity: 0;
             }
+        }
+
+        @keyframes comboCountEffect {
+            0% { 
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 0;
+            }
+            20% {
+                transform: translateX(-50%) translateY(-10px) scale(1.2);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(-20px) scale(1.2);
+                opacity: 1;
+            }
+            100% { 
+                transform: translateX(-50%) translateY(-30px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .combo-animation {
+            animation: comboFlash 0.5s ease-in-out;
+        }
+
+        @keyframes comboFlash {
+            0% { filter: brightness(1) contrast(1); }
+            50% { filter: brightness(1.5) contrast(1.2); }
+            100% { filter: brightness(1) contrast(1); }
         }
     `;
     document.head.appendChild(style);
@@ -1889,48 +1911,135 @@ function addPassThroughEffect(player) {
 function addTeleportAnimationStyle() {
     const style = document.createElement('style');
     style.textContent = `
-        @keyframes passThroughEffect {
-            0% { 
-                opacity: 1;
-                transform: scale(1);
-            }
-            25% { 
-                opacity: 0.5;
-                transform: scale(0.8);
-            }
-            50% { 
-                opacity: 0.2;
-                transform: scale(0.6);
-            }
-            75% { 
-                opacity: 0.5;
-                transform: scale(0.8);
-            }
-            100% { 
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        .pass-through {
-            animation: passThroughEffect 0.5s ease;
-        }
-
         @keyframes dashCloneEffect {
             0% { 
                 opacity: 0.7;
                 transform: scale(1);
+                filter: brightness(1.2) drop-shadow(0 0 10px #2ecc71);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.05);
+                filter: brightness(1.5) drop-shadow(0 0 15px #2ecc71);
             }
             100% { 
                 opacity: 0;
                 transform: scale(1.1);
+                filter: brightness(1.8) drop-shadow(0 0 20px #2ecc71);
             }
         }
         
         .dash-clone {
             position: absolute;
+            animation: dashCloneEffect 2s ease-out forwards;
+            filter: brightness(1.2) drop-shadow(0 0 10px #2ecc71);
+        }
+
+        .dash-clone.hit {
+            animation: cloneHitEffect 0.5s ease-out forwards !important;
+        }
+
+        @keyframes cloneHitEffect {
+            0% { 
+                opacity: 0.7;
+                transform: scale(1);
+                filter: brightness(2) drop-shadow(0 0 20px #2ecc71);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+                filter: brightness(2.5) drop-shadow(0 0 30px #2ecc71);
+            }
+            100% { 
+                opacity: 0.3;
+                transform: scale(1.3);
+                filter: brightness(3) drop-shadow(0 0 40px #2ecc71);
+            }
+        }
+
+        .heal-effect {
+            position: absolute;
+            color: #2ecc71;
+            font-size: 24px;
+            font-weight: bold;
             pointer-events: none;
-            animation: dashCloneEffect 1s ease-out forwards;
+            text-shadow: 
+                0 0 5px #2ecc71,
+                0 0 10px #2ecc71,
+                0 0 20px #2ecc71,
+                0 0 40px #27ae60;
+            z-index: 1000;
+            animation: healFloat2 1s ease-out forwards;
+        }
+
+        .heal-plus {
+            position: absolute;
+            color: #2ecc71;
+            font-size: 32px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 
+                0 0 5px #2ecc71,
+                0 0 10px #2ecc71,
+                0 0 20px #2ecc71,
+                0 0 40px #27ae60;
+            z-index: 1000;
+        }
+
+        .heal-plus-1 {
+            animation: healFloat1 1s ease-out forwards;
+        }
+
+        .heal-plus-2 {
+            animation: healFloat2 1.2s ease-out forwards;
+        }
+
+        .heal-plus-3 {
+            animation: healFloat3 1.4s ease-out forwards;
+        }
+
+        @keyframes healFloat1 {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(-10px, -20px) rotate(-15deg) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-20px, -40px) rotate(-30deg) scale(1.4);
+            }
+        }
+
+        @keyframes healFloat2 {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(0px, -25px) rotate(0deg) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(0px, -50px) rotate(0deg) scale(1.4);
+            }
+        }
+
+        @keyframes healFloat3 {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 0;
+            }
         }
 
         .dash-cooldown {
@@ -1949,7 +2058,105 @@ function addTeleportAnimationStyle() {
     document.head.appendChild(style);
 }
 
-// Add dash function
+// Heal player function with enhanced visuals
+function healPlayer(player, amount) {
+    // Calculate new health (don't exceed 100)
+    const newHealth = Math.min(player.health + amount, 100);
+    const actualHealAmount = newHealth - player.health;
+    player.health = newHealth;
+
+    // Update health bar
+    updateHealthBar(player);
+
+    // Show heal effects
+    if (player.element && actualHealAmount > 0) {
+        // Add healing effect to health bar
+        const healthBar = player.healthBar;
+        if (healthBar) {
+            healthBar.classList.add('healing');
+            setTimeout(() => {
+                healthBar.classList.remove('healing');
+            }, 1000);
+        }
+
+        // Show heal amount
+        const healText = document.createElement('div');
+        healText.className = 'heal-effect';
+        healText.textContent = `+${actualHealAmount}`;
+        healText.style.left = '50%';
+        healText.style.top = '50%';
+        player.element.appendChild(healText);
+
+        // Create floating + symbols
+        for (let i = 1; i <= 3; i++) {
+            const plusSymbol = document.createElement('div');
+            plusSymbol.className = `heal-plus heal-plus-${i}`;
+            plusSymbol.textContent = '+';
+            plusSymbol.style.left = '50%';
+            plusSymbol.style.top = '40%';
+            player.element.appendChild(plusSymbol);
+
+            // Remove plus symbols after animation
+            setTimeout(() => {
+                plusSymbol.remove();
+            }, 1400);
+        }
+
+        // Remove heal text after animation
+        setTimeout(() => {
+            healText.remove();
+        }, 1000);
+    }
+}
+
+// Update health bar function
+function updateHealthBar(player) {
+    // Update health bar with percentage
+    if (player.healthBar) {
+        const percentage = player.health;
+        player.healthBar.style.width = percentage + '%';
+        
+        // Update color based on health percentage
+        if (percentage <= 20) {
+            player.healthBar.style.backgroundColor = '#e74c3c'; // Red for low health
+        } else if (percentage <= 50) {
+            player.healthBar.style.backgroundColor = '#f1c40f'; // Yellow for medium health
+        } else {
+            player.healthBar.style.backgroundColor = '#27ae60'; // Green for high health
+        }
+        
+        player.healthBar.textContent = Math.round(percentage) + '%';
+    }
+}
+
+// Create dash clone effect with hit detection
+function createDashClone(player) {
+    if (!player.element) return;
+
+    // Create clone element
+    const clone = player.element.cloneNode(true);
+    clone.classList.add('dash-clone');
+    clone.style.left = player.position + 'px';
+    
+    // Store reference to original player
+    clone.dataset.originalPlayer = player === gameState.player1 ? 'player1' : 'player2';
+    clone.dataset.hit = 'false';
+    
+    // Add clone to arena
+    const arena = document.getElementById('fightArena');
+    if (arena) {
+        arena.appendChild(clone);
+        
+        // Remove clone after animation if not hit
+        setTimeout(() => {
+            if (clone && clone.parentElement && clone.dataset.hit === 'false') {
+                clone.remove();
+            }
+        }, 2000);
+    }
+}
+
+// Add dash function with faster movement
 function performDash(player, direction) {
     const currentTime = Date.now();
     const cooldownDuration = 10000; // 10 seconds cooldown
@@ -1964,8 +2171,8 @@ function performDash(player, direction) {
     // Create clone effect at current position
     createDashClone(player);
 
-    // Calculate dash distance (20px in movement direction)
-    const dashDistance = direction * 20;
+    // Calculate dash distance (increased from 20px to 30px for faster movement)
+    const dashDistance = direction * 30;
     const newPosition = player.position + dashDistance;
 
     // Get boundaries
@@ -1981,9 +2188,15 @@ function performDash(player, direction) {
         player.position = newPosition;
     }
 
-    // Update position visually
+    // Update position visually with immediate effect
     if (player.element) {
+        player.element.style.transition = 'left 0.1s ease'; // Add quick transition
         player.element.style.left = player.position + 'px';
+        
+        // Remove transition after dash
+        setTimeout(() => {
+            player.element.style.transition = '';
+        }, 100);
     }
 
     // Set cooldown
@@ -1994,27 +2207,6 @@ function performDash(player, direction) {
     setTimeout(() => {
         player.dashCooldown = false;
     }, cooldownDuration);
-}
-
-// Create dash clone effect
-function createDashClone(player) {
-    if (!player.element) return;
-
-    // Create clone element
-    const clone = player.element.cloneNode(true);
-    clone.classList.add('dash-clone');
-    clone.style.left = player.position + 'px';
-    
-    // Add clone to arena
-    const arena = document.getElementById('fightArena');
-    if (arena) {
-        arena.appendChild(clone);
-        
-        // Remove clone after animation
-        setTimeout(() => {
-            clone.remove();
-        }, 1000);
-    }
 }
 
 // Show dash cooldown indicator
@@ -2037,4 +2229,227 @@ function showDashCooldown(player, seconds) {
     setTimeout(() => {
         cooldownIndicator.remove();
     }, 1000);
+}
+
+// Add new function for Curse-Or combos
+function checkCurseOrCombos(player) {
+    const isPlayer1 = player === gameState.player1;
+    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
+    const sequence = playerComboState.sequence.join(',');
+
+    // Define combo patterns and animations based on character
+    const combos = {
+        'curse-or': {
+            'punch,punch,kick': {
+                name: 'Shadow Strike',
+                damage: 25,
+                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
+                duration: 2000  // 2 seconds for animation
+            },
+            'kick,kick,punch': {
+                name: 'Demon Crusher',
+                damage: 30,
+                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
+                duration: 2000
+            },
+            'punch,kick,punch': {
+                name: 'Dark Reaper',
+                damage: 35,
+                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
+                duration: 2000
+            }
+        },
+        'reign': {
+            'punch,punch,kick': {
+                name: 'Ice Storm',
+                damage: 25,
+                animation: '../assests/players/character_2/2_Right_combo.gif',
+                duration: 2000
+            },
+            'kick,kick,punch': {
+                name: 'Frost Breaker',
+                damage: 30,
+                animation: '../assests/players/character_2/2_Right_combo.gif',
+                duration: 2000
+            },
+            'punch,kick,punch': {
+                name: 'Arctic Slash',
+                damage: 35,
+                animation: '../assests/players/character_2/2_Right_combo.gif',
+                duration: 2000
+            }
+        }
+    };
+
+    // Get character-specific combos
+    const characterCombos = combos[player.character];
+    if (!characterCombos) return;
+
+    // Check if current sequence matches any combo
+    for (const [pattern, combo] of Object.entries(characterCombos)) {
+        if (sequence.endsWith(pattern)) {
+            executeCombo(player, combo);
+            playerComboState.sequence = []; // Reset sequence after successful combo
+            break;
+        }
+    }
+}
+
+// Update execute combo function with proper vertical movement
+function executeCombo(player, combo) {
+    const isPlayer1 = player === gameState.player1;
+    const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+    
+    // Set player in combo state
+    player.isInCombo = true;
+    player.isAttacking = true;
+    
+    // Add combo class for z-index handling
+    player.element.classList.add('in-combo');
+
+    // Show combo effect
+    showComboEffect(player, combo.name);
+
+    // Special handling for Curse-Or's combo
+    if (player.character === 'curse-or') {
+        const playerImage = player.element?.querySelector('.fighter-image');
+        const opponentElement = opponent.element;
+        const opponentImage = opponentElement?.querySelector('.fighter-image');
+        if (!playerImage || !opponentElement || !opponentImage) return;
+
+        // Store initial positions
+        const initialPlayerPos = player.position;
+        const initialOpponentPos = opponent.position;
+        const direction = opponent.position > player.position ? 1 : -1;
+
+        // Sequence 1: Initial punch and small displacement
+        playerImage.style.backgroundImage = `url(${getAttackAnimationPath(player.character, 'punch')})`;
+        setTimeout(() => {
+            opponent.position += direction * 20;
+            opponentElement.style.left = opponent.position + 'px';
+            applyDamage(opponent, 8);
+            showHitEffect(opponent);
+        }, 200);
+
+        // Sequence 2: First teleport and uppercut
+        setTimeout(() => {
+            // Remove createDashClone(player);
+            
+            // Teleport directly to opponent
+            player.position = opponent.position - (direction * 10);
+            player.element.style.left = player.position + 'px';
+            
+            // Uppercut animation
+            playerImage.style.backgroundImage = `url(${combo.animation})`;
+            
+            // Launch opponent upward with animation
+            opponentElement.classList.add('uppercut-victim');
+            
+            applyDamage(opponent, 12);
+            showHitEffect(opponent);
+        }, 500);
+
+        // Sequence 3: Second teleport and ground smash
+        setTimeout(() => {
+            // Remove createDashClone(player);
+            
+            // Teleport to where opponent will land
+            player.position = opponent.position;
+            player.element.style.left = player.position + 'px';
+            
+            // Ground smash animation
+            playerImage.style.backgroundImage = `url(${combo.animation})`;
+            
+            // Remove uppercut and add ground fall animation
+            opponentElement.classList.remove('uppercut-victim');
+            opponentElement.classList.add('ground-fall');
+            
+            applyDamage(opponent, 15);
+            showHitEffect(opponent);
+        }, 900);
+
+        // Sequence 4: Final teleport and multi-kick
+        setTimeout(() => {
+            // Remove createDashClone(player);
+            
+            // Remove ground fall animation
+            opponentElement.classList.remove('ground-fall');
+            
+            // Quick teleport to side of opponent
+            player.position = opponent.position - (direction * 30);
+            player.element.style.left = player.position + 'px';
+            
+            // Multi-kick animation
+            playerImage.style.backgroundImage = `url(${combo.animation})`;
+            
+            // Rapid kicks displacement
+            let kickCount = 0;
+            const maxKicks = 5;
+            const kickInterval = setInterval(() => {
+                if (kickCount < maxKicks) {
+                    opponent.position += direction * 20;
+                    opponentElement.style.transition = 'left 0.1s linear';
+                    opponentElement.style.left = opponent.position + 'px';
+                    applyDamage(opponent, 3);
+                    showHitEffect(opponent);
+                    kickCount++;
+                } else {
+                    clearInterval(kickInterval);
+                }
+            }, 100);
+        }, 1300);
+
+        // Reset everything after combo
+        setTimeout(() => {
+            // Remove all animation classes
+            opponentElement.classList.remove('uppercut-victim', 'ground-fall');
+            player.element.classList.remove('in-combo');
+            
+            // Reset transitions
+            playerImage.style.transition = '';
+            opponentElement.style.transition = '';
+            
+            // Reset transforms
+            playerImage.style.transform = '';
+            opponentImage.style.transform = '';
+            
+            // Reset states
+            player.isInCombo = false;
+            player.isAttacking = false;
+            
+            // Reset to idle animations
+            resetPlayerIdleImage(player);
+            resetPlayerIdleImage(opponent);
+        }, 2200);
+    } else {
+        // Handle other characters' combos normally
+        const playerImage = player.element?.querySelector('.fighter-image');
+        if (playerImage && combo.animation) {
+            playerImage.style.backgroundImage = `url(${combo.animation})`;
+            
+            // Calculate distance to opponent
+            const distance = Math.abs(player.position - opponent.position);
+            
+            // Apply damage if in range
+            if (distance < 100) {
+                if (!opponent.isGuarding) {
+                    setTimeout(() => {
+                        applyDamage(opponent, combo.damage);
+                        showHitEffect(opponent);
+                    }, combo.duration / 2);
+                } else {
+                    setTimeout(() => {
+                        showBlockedEffect(opponent);
+                    }, combo.duration / 2);
+                }
+            }
+
+            // Reset after combo
+            setTimeout(() => {
+                resetPlayerIdleImage(player);
+                player.isInCombo = false;
+                player.isAttacking = false;
+            }, combo.duration);
+        }
+    }
 }

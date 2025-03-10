@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Get selected map and players from session storage
-  const selectedMap = sessionStorage.getItem('selectedMap');
+    const selectedMap = sessionStorage.getItem('selectedMap');
     const player1Character = sessionStorage.getItem('player1Character');
     const player2Character = sessionStorage.getItem('player2Character');
     
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up fighters with the correct character selections
     setupFighters(finalPlayer1, finalPlayer2);
   
-  // Set up game timer
+    // Set up game timer
     setupGameTimer();
     
     // Set up fight animation
@@ -65,14 +65,34 @@ document.addEventListener('DOMContentLoaded', function() {
         ensureImagesLoaded(finalPlayer1, finalPlayer2);
     }, 500);
 
-    addComboAnimationStyle();
     addTeleportAnimationStyle();
+
+    // Create blood overlays
+    const leftBloodOverlay = document.createElement('div');
+    leftBloodOverlay.id = 'left-blood-overlay';
+    leftBloodOverlay.className = 'blood-overlay';
+    leftBloodOverlay.style.opacity = '0'; // Set initial opacity to 0
+    document.body.appendChild(leftBloodOverlay);
+
+    const rightBloodOverlay = document.createElement('div');
+    rightBloodOverlay.id = 'right-blood-overlay';
+    rightBloodOverlay.className = 'blood-overlay';
+    rightBloodOverlay.style.opacity = '0'; // Set initial opacity to 0
+    document.body.appendChild(rightBloodOverlay);
+
+    // Create center blood overlay
+    const centerBloodOverlay = document.createElement('div');
+    centerBloodOverlay.id = 'center-blood-overlay';
+    document.body.appendChild(centerBloodOverlay);
 });
 
 // Game state
 let gameState = {
     player1: {
         health: 100,
+        stamina: 100, // Add stamina property
+        lastStaminaRegen: 0, // Track last stamina regeneration time
+        lastDamageTaken: 0, // Track last damage taken time
         position: 200,
         isJumping: false,
         isGuarding: false,
@@ -82,11 +102,19 @@ let gameState = {
         character: null,
         element: null,
         healthBar: null,
+        staminaBar: null, // Add stamina bar reference
         dashCooldown: false,
-        lastDashTime: 0
+        lastDashTime: 0,
+        lastHitSoundIndex: null,
+        movementSound: null,
+        chargingSound: null,
+        mainStaminaBar: null // Add main stamina bar reference
     },
     player2: {
         health: 100,
+        stamina: 100, // Add stamina property
+        lastStaminaRegen: 0, // Track last stamina regeneration time
+        lastDamageTaken: 0, // Track last damage taken time
         position: 800,
         isJumping: false,
         isGuarding: false,
@@ -96,8 +124,13 @@ let gameState = {
         character: null,
         element: null,
         healthBar: null,
+        staminaBar: null, // Add stamina bar reference
         dashCooldown: false,
-        lastDashTime: 0
+        lastDashTime: 0,
+        lastHitSoundIndex: null,
+        movementSound: null,
+        chargingSound: null,
+        mainStaminaBar: null // Add main stamina bar reference
     },
     arena: {
         width: 1000,
@@ -127,58 +160,11 @@ let gameState = {
     gameOver: false,
     winner: null,
     roundTime: 60,
-    animationFrame: null,
-    specialMoves: {
-        player1: {
-            sequence: [],
-            lastKeyTime: 0,
-            cooldown: false
-        },
-        player2: {
-            sequence: [],
-            lastKeyTime: 0,
-            cooldown: false
-        }
-    }
+    animationFrame: null
 };
 
-// Add these variables at the top of the file, after gameState declaration
-let lastPunchTime = {
-    player1: 0,
-    player2: 0
-};
-
-let lastPunchType = {
-    player1: 1,
-    player2: 1
-};
-
-// Add last attack time tracking
-let lastAttackTime = {
-    player1: 0,
-    player2: 0
-};
-
-// Add combo tracking with more detailed state
-let comboState = {
-    player1: {
-        sequence: [],
-        lastAttackTime: 0,
-        isComboActive: false,
-        isInComboRecovery: false,
-        currentComboCount: 0
-    },
-    player2: {
-        sequence: [],
-        lastAttackTime: 0,
-        isComboActive: false,
-        isInComboRecovery: false,
-        currentComboCount: 0
-    }
-};
-
-// Add this to the top of the file after gameState declaration
-const COMBO_STYLES = `
+// Basic fighter styles
+const FIGHTER_STYLES = `
     .fighter-image {
         position: absolute;
         bottom: 0;
@@ -187,40 +173,109 @@ const COMBO_STYLES = `
         height: 100%;
         transform-origin: center bottom;
         will-change: transform;
-    }
-
-    .fighter.in-combo {
-        z-index: 100;
+        z-index: 1;
     }
 
     .fighter-container {
         position: relative;
         width: 100%;
         height: 100%;
+        z-index: 1;
     }
 
-    @keyframes uppercut-launch {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-300px); }
-        100% { transform: translateY(-300px); }
+    @keyframes hitShake {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(-5px, -2px) rotate(-3deg); }
+        50% { transform: translate(5px, 2px) rotate(3deg); }
+        75% { transform: translate(-3px, -1px) rotate(-2deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
     }
 
-    @keyframes ground-fall {
-        0% { transform: translateY(-300px); }
-        100% { transform: translateY(0); }
+    @keyframes hitOutlineEffect {
+        0% { 
+            opacity: 0.7;
+            transform: scale(1);
+            filter: brightness(2) drop-shadow(0 0 10px #ff3366);
+        }
+        50% {
+            opacity: 0.5;
+            transform: scale(1.05);
+            filter: brightness(2.5) drop-shadow(0 0 15px #ff3366);
+        }
+        100% { 
+            opacity: 0;
+            transform: scale(1.1);
+            filter: brightness(3) drop-shadow(0 0 20px #ff3366);
+        }
     }
 
-    .uppercut-victim {
-        animation: uppercut-launch 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    .hit-outline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        animation: hitOutlineEffect 0.3s ease-out forwards;
+        z-index: 100;
+        background-size: contain !important;
+        background-position: bottom !important;
+        background-repeat: no-repeat !important;
     }
 
-    .ground-fall {
-        animation: ground-fall 0.2s cubic-bezier(0.6, 0, 0.8, 1) forwards;
+    .screen-shake {
+        animation: hitShake 0.3s ease-in-out;
+    }
+
+    .stamina-bar {
+        position: absolute;
+        width: 100%;
+        height: 5px;
+        background-color: #34495e;
+        bottom: -15px;  /* Changed from -8px to -15px to position below health bar */
+        left: 0;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .stamina-bar-fill {
+        width: 100%;
+        height: 100%;
+        background-color: #3498db;
+        transition: width 0.2s ease-out;
+    }
+
+    .stamina-bar.low .stamina-bar-fill {
+        background-color: #e74c3c;
+        animation: staminaPulse 1s infinite;
+    }
+
+    @keyframes staminaPulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+
+    .stamina-warning {
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #e74c3c;
+        font-size: 14px;
+        font-weight: bold;
+        text-shadow: 0 0 5px #000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .stamina-warning.show {
+        opacity: 1;
     }
 `;
 
 // Add the styles to the document
-document.head.insertAdjacentHTML('beforeend', `<style>${COMBO_STYLES}</style>`);
+document.head.insertAdjacentHTML('beforeend', `<style>${FIGHTER_STYLES}</style>`);
 
 function initGameEngine(player1Character, player2Character) {
     // Set up game arena
@@ -238,6 +293,10 @@ function initGameEngine(player1Character, player2Character) {
     gameState.player2.element = document.getElementById('player2');
     gameState.player1.healthBar = document.querySelector('#player1-health .health-bar');
     gameState.player2.healthBar = document.querySelector('#player2-health .health-bar');
+    
+    // Set up main stamina bars
+    gameState.player1.mainStaminaBar = document.querySelector('#player1-health .main-stamina-bar');
+    gameState.player2.mainStaminaBar = document.querySelector('#player2-health .main-stamina-bar');
     
     // Set character data
     gameState.player1.character = player1Character;
@@ -277,15 +336,34 @@ function initGameEngine(player1Character, player2Character) {
             }, 500);
         }
     }, 2000);
+    
+    // Add stamina bars
+    if (gameState.player1.element) {
+        const player1StaminaBar = createStaminaBar(gameState.player1);
+        gameState.player1.element.appendChild(player1StaminaBar);
+        gameState.player1.staminaBar = player1StaminaBar;
+    }
+    
+    if (gameState.player2.element) {
+        const player2StaminaBar = createStaminaBar(gameState.player2);
+        gameState.player2.element.appendChild(player2StaminaBar);
+        gameState.player2.staminaBar = player2StaminaBar;
+    }
 }
 
 function setupControls() {
-    // Keyboard event listeners
+    // Remove any existing event listeners
+    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
+    
+    // Add keyboard event listeners
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     
     // Touch controls for mobile (optional)
     setupTouchControls();
+    
+    console.log('Controls initialized');
 }
 
 function handleKeyDown(e) {
@@ -297,12 +375,10 @@ function handleKeyDown(e) {
         case 'w':
             if (!gameState.keys.player1.jump) {  // Only trigger if not already jumping
                 gameState.keys.player1.jump = true;
-                recordSpecialMoveKey(gameState.player1, 'up');
             }
             break;
         case 'a':
             gameState.keys.player1.left = true;
-            recordSpecialMoveKey(gameState.player1, 'left');
             // Check for dash (Shift + A)
             if (e.shiftKey) {
                 performDash(gameState.player1, -1);
@@ -310,7 +386,6 @@ function handleKeyDown(e) {
             break;
         case 'd':
             gameState.keys.player1.right = true;
-            recordSpecialMoveKey(gameState.player1, 'right');
             // Check for dash (Shift + D)
             if (e.shiftKey) {
                 performDash(gameState.player1, 1);
@@ -319,25 +394,20 @@ function handleKeyDown(e) {
         case 's':
             gameState.keys.player1.guard = true;
             guardPlayer(gameState.player1);  // Start guarding immediately
-            recordSpecialMoveKey(gameState.player1, 'down');
             break;
         case 'f':
             // Check if enough time has passed since last attack and player is not jumping or dodging
             if (!gameState.keys.player1.punch && !gameState.player1.isAttacking && 
-                !gameState.player1.isJumping && !gameState.player1.isDodging &&
-                currentTime - lastAttackTime.player1 >= ATTACK_DELAY) {
+                !gameState.player1.isJumping && !gameState.player1.isDodging) {
                 gameState.keys.player1.punch = true;
-                lastAttackTime.player1 = currentTime;
                 attackPlayer(gameState.player1, 'punch');
             }
             break;
         case 'g':
             // Check if enough time has passed since last attack and player is not jumping or dodging
             if (!gameState.keys.player1.kick && !gameState.player1.isAttacking && 
-                !gameState.player1.isJumping && !gameState.player1.isDodging &&
-                currentTime - lastAttackTime.player1 >= ATTACK_DELAY) {
+                !gameState.player1.isJumping && !gameState.player1.isDodging) {
                 gameState.keys.player1.kick = true;
-                lastAttackTime.player1 = currentTime;
                 attackPlayer(gameState.player1, 'kick');
             }
             break;
@@ -348,12 +418,10 @@ function handleKeyDown(e) {
         case 'ArrowUp':
             if (!gameState.keys.player2.jump) {  // Only trigger if not already jumping
                 gameState.keys.player2.jump = true;
-                recordSpecialMoveKey(gameState.player2, 'up');
             }
             break;
         case 'ArrowLeft':
             gameState.keys.player2.left = true;
-            recordSpecialMoveKey(gameState.player2, 'left');
             // Check for dash (Shift + Left Arrow)
             if (e.shiftKey) {
                 performDash(gameState.player2, -1);
@@ -361,7 +429,6 @@ function handleKeyDown(e) {
             break;
         case 'ArrowRight':
             gameState.keys.player2.right = true;
-            recordSpecialMoveKey(gameState.player2, 'right');
             // Check for dash (Shift + Right Arrow)
             if (e.shiftKey) {
                 performDash(gameState.player2, 1);
@@ -370,25 +437,20 @@ function handleKeyDown(e) {
         case 'ArrowDown':
             gameState.keys.player2.guard = true;
             guardPlayer(gameState.player2);  // Start guarding immediately
-            recordSpecialMoveKey(gameState.player2, 'down');
             break;
         case 'k':
             // Check if enough time has passed since last attack and player is not jumping or dodging
             if (!gameState.keys.player2.punch && !gameState.player2.isAttacking && 
-                !gameState.player2.isJumping && !gameState.player2.isDodging &&
-                currentTime - lastAttackTime.player2 >= ATTACK_DELAY) {
+                !gameState.player2.isJumping && !gameState.player2.isDodging) {
                 gameState.keys.player2.punch = true;
-                lastAttackTime.player2 = currentTime;
                 attackPlayer(gameState.player2, 'punch');
             }
             break;
         case 'l':
             // Check if enough time has passed since last attack and player is not jumping or dodging
             if (!gameState.keys.player2.kick && !gameState.player2.isAttacking && 
-                !gameState.player2.isJumping && !gameState.player2.isDodging &&
-                currentTime - lastAttackTime.player2 >= ATTACK_DELAY) {
+                !gameState.player2.isJumping && !gameState.player2.isDodging) {
                 gameState.keys.player2.kick = true;
-                lastAttackTime.player2 = currentTime;
                 attackPlayer(gameState.player2, 'kick');
             }
             break;
@@ -403,17 +465,27 @@ function handleKeyUp(e) {
             break;
         case 'a': 
             gameState.keys.player1.left = false; 
+            // Stop movement sound
+            if (gameState.player1.movementSound) {
+                gameState.player1.movementSound.pause();
+                gameState.player1.movementSound = null;
+            }
             // Reset player 1 image when left key is released
             resetPlayerIdleImage(gameState.player1);
             break;
         case 'd': 
             gameState.keys.player1.right = false; 
+            // Stop movement sound
+            if (gameState.player1.movementSound) {
+                gameState.player1.movementSound.pause();
+                gameState.player1.movementSound = null;
+            }
             // Reset player 1 image when right key is released
             resetPlayerIdleImage(gameState.player1);
             break;
         case 's': 
             gameState.keys.player1.guard = false; 
-            stopGuardPlayer(gameState.player1);  // Stop guarding immediately
+            stopGuardPlayer(gameState.player1);
             break;
         case 'f': 
             gameState.keys.player1.punch = false; 
@@ -430,17 +502,27 @@ function handleKeyUp(e) {
             break;
         case 'ArrowLeft': 
             gameState.keys.player2.left = false; 
+            // Stop movement sound
+            if (gameState.player2.movementSound) {
+                gameState.player2.movementSound.pause();
+                gameState.player2.movementSound = null;
+            }
             // Reset player 2 image when left key is released
             resetPlayerIdleImage(gameState.player2);
             break;
         case 'ArrowRight': 
             gameState.keys.player2.right = false; 
+            // Stop movement sound
+            if (gameState.player2.movementSound) {
+                gameState.player2.movementSound.pause();
+                gameState.player2.movementSound = null;
+            }
             // Reset player 2 image when right key is released
             resetPlayerIdleImage(gameState.player2);
             break;
         case 'ArrowDown': 
             gameState.keys.player2.guard = false; 
-            stopGuardPlayer(gameState.player2);  // Stop guarding immediately
+            stopGuardPlayer(gameState.player2);
             break;
         case 'k': 
             gameState.keys.player2.punch = false; 
@@ -462,6 +544,10 @@ function gameLoop() {
     
     // Update game state
     updateGameState();
+    
+    // Regenerate stamina for both players
+    regenerateStamina(gameState.player1);
+    regenerateStamina(gameState.player2);
     
     // Render the game
     renderGame();
@@ -512,10 +598,6 @@ function processInput() {
     } else if (gameState.player2.isGuarding) {
         stopGuardPlayer(gameState.player2);
     }
-    
-    // Check for special moves
-    checkSpecialMoves(gameState.player1);
-    checkSpecialMoves(gameState.player2);
 }
 
 function movePlayer(player, direction) {
@@ -587,6 +669,31 @@ function movePlayer(player, direction) {
         }
     }
     
+    // Handle movement sound
+    if (!player.movementSound) {
+        const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+        const soundPath = '../assests/audio/movementSFX/movement.mp3';
+
+        // Create and play the movement sound
+        player.movementSound = new Audio(soundPath);
+        player.movementSound.volume = 0.6;
+        player.movementSound.loop = false;
+        
+        // Set playback speed based on character
+        if (characterId === 'reign') {
+            player.movementSound.playbackRate = 1.5; // Faster speed for Reign
+        } else {
+            player.movementSound.playbackRate = 1.0; // Normal speed for Curse-or
+        }
+        
+        // Add ended event listener to clean up the sound object
+        player.movementSound.addEventListener('ended', () => {
+            player.movementSound = null;
+        });
+        
+        player.movementSound.play().catch(e => console.warn('Movement sound play failed:', e));
+    }
+    
     // Update player image for movement
     updatePlayerMovementImage(player, direction);
     
@@ -600,6 +707,15 @@ function jumpPlayer(player) {
     }
     
     player.isJumping = true;
+    
+    // Play character-specific jump sound with increased volume and more pitch variance
+    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    const jumpSound = new Audio(characterId === 'curse-or' ? 
+        '../assests/audio/movementSFX/jump.mp3' : 
+        '../assests/audio/movementSFX/jump2.mp3');
+    jumpSound.volume = 0.8; // Increased from 0.5 to 0.8
+    jumpSound.playbackRate = 0.8 + (Math.random() * 0.6); // Wider range: 0.8 to 1.4
+    jumpSound.play().catch(e => console.warn('Jump sound play failed:', e));
     
     // Add jump animation class
     if (player.element) {
@@ -661,8 +777,31 @@ function guardPlayer(player) {
         return;
     }
     
+    // Check if player has enough stamina to start guarding (minimum 20%)
+    if (!player.isGuarding && player.stamina < 20) {
+        showStaminaWarning(player);
+        return;
+    }
+    
+    // Consume stamina while guarding (5% per second)
+    if (player.isGuarding) {
+        if (!consumeStamina(player, 0.25)) { // 0.25% per frame ≈ 5% per second at 20fps
+            stopGuardPlayer(player);
+            showStaminaWarning(player);
+            return;
+        }
+    }
+    
     // Set guard state immediately
     player.isGuarding = true;
+    
+    // Play shield sound only if not already playing
+    if (!player.chargingSound) {
+        player.chargingSound = new Audio('../assests/audio/movementSFX/shield.mp3');
+        player.chargingSound.volume = 0.6;
+        player.chargingSound.loop = false;
+        player.chargingSound.play().catch(e => console.warn('Shield sound play failed:', e));
+    }
     
     // Get the player image element
     const playerImage = player.element?.querySelector('.fighter-image');
@@ -700,12 +839,19 @@ function guardPlayer(player) {
             }
         }
     }
+}
+
+// Add function to show stamina warning
+function showStaminaWarning(player) {
+    if (!player.staminaBar) return;
     
-    console.log('Guard activated:', isPlayer1 ? 'Player 1' : 'Player 2', {
-        isGuarding: player.isGuarding,
-        guardKey: isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard,
-        isJumping: player.isJumping
-    });
+    const warning = player.staminaBar.querySelector('.stamina-warning');
+    if (warning) {
+        warning.classList.add('show');
+        setTimeout(() => {
+            warning.classList.remove('show');
+        }, 1000);
+    }
 }
 
 function stopGuardPlayer(player) {
@@ -713,6 +859,12 @@ function stopGuardPlayer(player) {
     
     // Clear guard state immediately
     player.isGuarding = false;
+    
+    // Stop and clean up shield sound
+    if (player.chargingSound) {
+        player.chargingSound.pause();
+        player.chargingSound = null;
+    }
     
     // Reset to idle animation
     resetPlayerIdleImage(player);
@@ -723,13 +875,13 @@ function stopGuardPlayer(player) {
     });
 }
 
-// Update attack player to handle both normal attacks and combos
+// Update attack player function to remove combo logic
 function attackPlayer(player, attackType) {
     const isPlayer1 = player === gameState.player1;
     
-    // Don't allow attacks during combo or recovery
+    // Don't allow attacks during other actions
     if (player.isAttacking || player.isJumping || player.isDodging || 
-        player.isGuarding || player.isInCombo ||
+        player.isGuarding || 
         (isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
         return;
     }
@@ -737,98 +889,78 @@ function attackPlayer(player, attackType) {
     player.isAttacking = true;
     player.attackType = attackType;
 
-    // Handle combo system
-    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
-    const currentTime = Date.now();
-    const timeSinceLastAttack = currentTime - playerComboState.lastAttackTime;
+    const playerImage = player.element?.querySelector('.fighter-image');
+    if (!playerImage) return;
+    
+    // Get the character ID and set attack animation
+    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    let attackPath = getAttackAnimationPath(characterId, attackType);
+    
+    if (attackPath) {
+        playerImage.style.backgroundImage = `url(${attackPath})`;
 
-    // Reset combo if too much time has passed
-    if (timeSinceLastAttack > 1000) {
-        playerComboState.sequence = [];
-        playerComboState.currentComboCount = 0;
-    }
-
-    // Add attack to combo sequence
-    playerComboState.sequence.push(attackType);
-    playerComboState.lastAttackTime = currentTime;
-    playerComboState.currentComboCount++;
-
-    // Check for character-specific combos
-    checkCurseOrCombos(player);
-
-    // Only proceed with normal attack if not starting a combo
-    if (!player.isInCombo) {
-        const playerImage = player.element?.querySelector('.fighter-image');
-        if (!playerImage) return;
-        
-        // Get the character ID and set attack animation
-        const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
-        let attackPath = getAttackAnimationPath(characterId, attackType);
-        
-        if (attackPath) {
-            playerImage.style.backgroundImage = `url(${attackPath})`;
-            
-            // Determine the defender
-            const defender = isPlayer1 ? gameState.player2 : gameState.player1;
-            const distance = Math.abs(player.position - defender.position);
-            
-            // Check for nearby clones
-            const clones = document.querySelectorAll('.dash-clone');
-            let hitClone = false;
-            
-            clones.forEach(clone => {
-                if (clone.dataset.originalPlayer !== (isPlayer1 ? 'player1' : 'player2')) {
-                    const clonePosition = parseInt(clone.style.left);
-                    const distanceToClone = Math.abs(player.position - clonePosition);
-                    
-                    if (distanceToClone < 100) {
-                        // Increment hit count
-                        const hitCount = parseInt(clone.dataset.hitCount || '0') + 1;
-                        clone.dataset.hitCount = hitCount.toString();
-                        
-                        // Add hit effect
-                        clone.classList.remove('hit');
-                        void clone.offsetWidth; // Force reflow
-                        clone.classList.add('hit');
-                        
-                        // Heal the clone's original player
-                        const originalPlayer = clone.dataset.originalPlayer === 'player1' ? gameState.player1 : gameState.player2;
-                        healPlayer(originalPlayer, 5);
-                        
-                        // Remove clone after 5 hits or if animation is done
-                        if (hitCount >= 5) {
-                            setTimeout(() => {
-                                if (clone && clone.parentElement) {
-                                    clone.remove();
-                                }
-                            }, 500);
-                        }
-                        
-                        hitClone = true;
-                    }
-                }
-            });
-            
-            // If no clone was hit, proceed with normal attack logic
-            if (!hitClone && distance < 50) {
-                if (defender.isGuarding) {
-                    showBlockedEffect(defender);
-                } else {
-                    applyDamage(defender, 10);
-                    showHitEffect(defender);
-                    showAttackText(player, attackType);
-                }
-            }
-            
-            // Reset to idle after attack
+        // Play attack sound based on character and attack type
+        if (characterId === 'curse-or' && attackType === 'punch') {
+            // Curse-or punch sounds with layered effects
+            const punchSound1 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_16.wav');
+            const punchSound2 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_30.wav');
+            punchSound1.volume = 0.45;
+            punchSound2.volume = 0.25;
+            punchSound1.playbackRate = 1.0 + (Math.random() * 0.4); // 1.0 to 1.4
+            punchSound2.playbackRate = 1.2 + (Math.random() * 0.3); // 1.2 to 1.5
+            punchSound1.play().catch(e => console.warn('Sound play failed:', e));
             setTimeout(() => {
-                if (!player.isInCombo) {  // Only reset if not in combo
-                    resetPlayerIdleImage(player);
-                    player.isAttacking = false;
-                    player.attackType = null;
-                }
-            }, 250);
+                punchSound2.play().catch(e => console.warn('Sound play failed:', e));
+            }, 10);
+        } else if (characterId === 'curse-or' && attackType === 'kick') {
+            // Curse-or kick sound with layered effects
+            const kickSound = new Audio('../assests/audio/FightSFX/Kick/kick_short_whoosh_12.wav');
+            kickSound.volume = 0.5;
+            kickSound.playbackRate = 0.9 + (Math.random() * 0.4); // 0.9 to 1.3
+            kickSound.play().catch(e => console.warn('Sound play failed:', e));
+        } else if (characterId === 'reign' && attackType === 'punch') {
+            // Reign punch sounds with layered effects
+            const punchSound1 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_16.wav');
+            const punchSound2 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_30.wav');
+            punchSound1.volume = 0.45;
+            punchSound2.volume = 0.25;
+            punchSound1.playbackRate = 1.0 + (Math.random() * 0.4); // 1.0 to 1.4
+            punchSound2.playbackRate = 1.2 + (Math.random() * 0.3); // 1.2 to 1.5
+            punchSound1.play().catch(e => console.warn('Sound play failed:', e));
+            setTimeout(() => {
+                punchSound2.play().catch(e => console.warn('Sound play failed:', e));
+            }, 10);
+        } else if (characterId === 'reign' && attackType === 'kick') {
+            // Reign kick sound with layered effects
+            const kickSound = new Audio('../assests/audio/FightSFX/Kick/kick_short_whoosh_23.wav');
+            kickSound.volume = 0.5;
+            kickSound.playbackRate = 0.9 + (Math.random() * 0.4); // 0.9 to 1.3
+            kickSound.play().catch(e => console.warn('Sound play failed:', e));
         }
+        
+        // Determine the defender
+        const defender = isPlayer1 ? gameState.player2 : gameState.player1;
+        const distance = Math.abs(player.position - defender.position);
+        
+        // Check for hit
+        if (distance < 50) {
+            if (defender.isGuarding) {
+                showBlockedEffect(defender);
+            } else {
+                // Apply damage based on attack type
+                const damage = attackType === 'punch' ? 5 : 7; // 5 for punch, 7 for kick
+                applyDamage(defender, damage);
+                showHitEffect(defender);
+                showAttackText(player, attackType);
+            }
+        }
+        
+        // Reset to idle after attack
+        setTimeout(() => {
+            resetPlayerIdleImage(player);
+            player.isAttacking = false;
+            player.attackType = null;
+        }, 250);
     }
 }
 
@@ -860,8 +992,19 @@ function showBlockedEffect(player) {
     // Heal player when successfully blocking
     healPlayer(player, 3);
     
-    // Play block sound
-    playSound('hit');
+    // Play random block sound with increased volume
+    const blockSounds = [
+        '../assests/audio/FightSFX/Block/block1.wav',
+        '../assests/audio/FightSFX/Block/block2.wav',
+        '../assests/audio/FightSFX/Block/block3.wav'
+    ];
+    
+    // Select a random sound
+    const randomIndex = Math.floor(Math.random() * blockSounds.length);
+    const blockSound = new Audio(blockSounds[randomIndex]);
+    blockSound.volume = 0.9; // Increased from 0.7 to 0.9
+    blockSound.playbackRate = 0.9 + (Math.random() * 0.4); // Random pitch between 0.9 and 1.3
+    blockSound.play().catch(e => console.warn('Block sound play failed:', e));
 }
 
 function showDodgedEffect(player) {
@@ -879,7 +1022,14 @@ function showDodgedEffect(player) {
     playSound('dodge');
 }
 
+// Modify the applyDamage function to remove blood overlay
 function applyDamage(player, amount) {
+    // Store previous health for comparison
+    const previousHealth = player.health;
+    
+    // Update last damage taken time
+    player.lastDamageTaken = Date.now();
+    
     // Reduce player health
     player.health -= amount;
     if (player.health < 0) player.health = 0;
@@ -889,6 +1039,15 @@ function applyDamage(player, amount) {
     
     // Show hit effect
     showHitEffect(player);
+    
+    // Add screen shake for significant damage
+    if (amount >= 10) {
+        const fightArena = document.getElementById('fightArena');
+        if (fightArena) {
+            fightArena.classList.add('screen-shake');
+            setTimeout(() => fightArena.classList.remove('screen-shake'), 300);
+        }
+    }
     
     // Check for knockout
     if (player.health <= 0) {
@@ -908,6 +1067,36 @@ function showHitEffect(player) {
     
     // Add hit class for animation
     player.element.classList.add('hit');
+
+    // Play hit sound effect with variance
+    const hitSounds = [
+        '../assests/audio/FightSFX/Damage/body_hit_large_32.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_large_44.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_large_76.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_small_11.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_small_20.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_small_23.wav',
+        '../assests/audio/FightSFX/Damage/body_hit_small_79.wav'
+    ];
+
+    // Get the last played sound index from the player's state or initialize it
+    if (!player.lastHitSoundIndex) player.lastHitSoundIndex = -1;
+
+    // Filter out the last played sound to avoid repetition
+    const availableSounds = hitSounds.filter((_, index) => index !== player.lastHitSoundIndex);
+    
+    // Select a random sound from the available ones
+    const randomIndex = Math.floor(Math.random() * availableSounds.length);
+    const selectedSound = availableSounds[randomIndex];
+    
+    // Update the last played sound index
+    player.lastHitSoundIndex = hitSounds.indexOf(selectedSound);
+
+    // Create and play the hit sound with slight pitch variation
+    const hitSound = new Audio(selectedSound);
+    hitSound.volume = 0.6;
+    hitSound.playbackRate = 0.9 + (Math.random() * 0.2); // Random pitch between 0.9 and 1.1
+    hitSound.play().catch(e => console.warn('Sound play failed:', e));
     
     // Get the character ID
     const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
@@ -923,12 +1112,56 @@ function showHitEffect(player) {
     // Apply the hit animation immediately
     if (hitPath) {
         playerImage.style.backgroundImage = `url(${hitPath})`;
-        
-        // Preserve the correct orientation
         playerImage.style.transform = currentTransform;
         
-        // Add pushback effect (reduced from 30 to 15)
-        const pushbackAmount = 15; // Reduced knockback distance
+        // Add screen shake effect to the entire fight arena
+        const fightArena = document.getElementById('fightArena');
+        if (fightArena) {
+            fightArena.classList.add('screen-shake');
+            setTimeout(() => {
+                fightArena.classList.remove('screen-shake');
+            }, 300);
+        }
+
+        // Create container for hit outline
+        const hitOutlineContainer = document.createElement('div');
+        hitOutlineContainer.style.position = 'absolute';
+        hitOutlineContainer.style.width = '100%';
+        hitOutlineContainer.style.height = '100%';
+        hitOutlineContainer.style.bottom = '0';
+        hitOutlineContainer.style.left = '0';
+        hitOutlineContainer.style.pointerEvents = 'none';
+
+        // Create glowing outline effect
+        const hitOutline = document.createElement('div');
+        hitOutline.className = 'hit-outline';
+        
+        // Set specific styles based on character
+        if (characterId === 'curse-or') {
+            hitOutline.style.width = '150px';
+            hitOutline.style.height = '260px';
+            hitOutline.style.backgroundImage = `url(${hitPath})`;
+            hitOutline.style.transform = currentTransform;
+            hitOutlineContainer.style.bottom = '40px';
+            hitOutline.style.top = '-60px';  // Add top offset for Curse-Or
+        } else {
+            hitOutline.style.width = '100px';
+            hitOutline.style.height = '150px';
+            hitOutline.style.backgroundImage = `url(${hitPath})`;
+            hitOutline.style.transform = `${currentTransform} scale(0.85)`;
+        }
+
+        // Add outline to container
+        hitOutlineContainer.appendChild(hitOutline);
+        player.element.appendChild(hitOutlineContainer);
+
+        // Remove outline after animation
+        setTimeout(() => {
+            hitOutlineContainer.remove();
+        }, 300);
+
+        // Add pushback effect
+        const pushbackAmount = 15;
         const currentPosition = player.position;
         const newPosition = player === gameState.player1 ? 
             currentPosition - pushbackAmount : 
@@ -943,7 +1176,7 @@ function showHitEffect(player) {
     setTimeout(() => {
         player.element.classList.remove('hit');
         resetPlayerIdleImage(player);
-    }, 800); // Keep the full animation duration
+    }, 800);
 }
 
 // Add new function for attack text effects
@@ -1126,8 +1359,9 @@ function setupFighters(player1Character, player2Character) {
             hitboxWidth: '150px',
             hitboxHeight: '150px',
             imageWidth: '150px',
-            imageHeight: '300px',
-            scale: 1
+            imageHeight: '260px',  // Reduced from 280px to 260px
+            scale: 1,
+            bottomOffset: '40px'   // Increased from 20px to 40px to position lower
         },
         'reign': {
             hitboxWidth: '150px',
@@ -1163,6 +1397,7 @@ function setupFighters(player1Character, player2Character) {
             player1Image.style.width = p1Settings.imageWidth;
             player1Image.style.height = p1Settings.imageHeight;
             player1Image.style.backgroundSize = `${p1Settings.imageWidth} ${p1Settings.imageHeight}`;
+            player1Image.style.bottom = p1Settings.bottomOffset || '0';  // Apply bottom offset for Curse-Or
         } else if (player1Character === 'reign') {
             player1Image.style.backgroundImage = 'url("../assests/players/character_2/2_Right_idle.gif")';
             player1Image.style.width = p1Settings.imageWidth;
@@ -1199,6 +1434,7 @@ function setupFighters(player1Character, player2Character) {
             player2Image.style.width = p2Settings.imageWidth;
             player2Image.style.height = p2Settings.imageHeight;
             player2Image.style.backgroundSize = `${p2Settings.imageWidth} ${p2Settings.imageHeight}`;
+            player2Image.style.bottom = p2Settings.bottomOffset || '0';  // Apply bottom offset for Curse-Or
         } else if (player2Character === 'reign') {
             player2Image.style.backgroundImage = 'url("../assests/players/character_2/2_Right_idle.gif")';
             player2Image.style.width = p2Settings.imageWidth;
@@ -1493,16 +1729,45 @@ function updateHealthBar(player) {
         const percentage = player.health;
         player.healthBar.style.width = percentage + '%';
         
-        // Update color based on health percentage
+        // Update color based on health percentage and add low health effect
         if (percentage <= 20) {
-            player.healthBar.style.backgroundColor = '#e74c3c'; // Red for low health
-        } else if (percentage <= 50) {
-            player.healthBar.style.backgroundColor = '#f1c40f'; // Yellow for medium health
+            player.healthBar.classList.add('low');
         } else {
-            player.healthBar.style.backgroundColor = '#27ae60'; // Green for high health
+            player.healthBar.classList.remove('low');
         }
         
-        player.healthBar.textContent = Math.round(percentage) + '%';
+        // Add damage flash effect
+        player.healthBar.classList.add('damage');
+        setTimeout(() => {
+            player.healthBar.classList.remove('damage');
+        }, 300);
+        
+        // Update health text with more dramatic formatting
+        player.healthBar.textContent = `${Math.round(percentage)}%`;
+
+        // Calculate opacity based on missing health (100% - current health%)
+        const opacity = (100 - percentage) / 100; // When health is 100%, opacity will be 0
+        
+        // Update blood overlay opacity based on player health
+        if (player === gameState.player1) {
+            const leftOverlay = document.getElementById('left-blood-overlay');
+            if (leftOverlay) {
+                leftOverlay.style.opacity = opacity.toString();
+            }
+        } else {
+            const rightOverlay = document.getElementById('right-blood-overlay');
+            if (rightOverlay) {
+                rightOverlay.style.opacity = opacity.toString();
+            }
+        }
+
+        // Update center blood overlay based on average health
+        const centerOverlay = document.getElementById('center-blood-overlay');
+        if (centerOverlay) {
+            const averageHealth = (gameState.player1.health + gameState.player2.health) / 2;
+            const centerOpacity = (100 - averageHealth) / 100;
+            centerOverlay.style.opacity = centerOpacity.toString();
+        }
     }
 }
 
@@ -2054,22 +2319,225 @@ function addTeleportAnimationStyle() {
             font-size: 12px;
             pointer-events: none;
         }
+
+        .laugh-text {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff3366;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 
+                0 0 10px #ff3366,
+                0 0 20px #ff3366,
+                0 0 30px #ff3366;
+            animation: laughTextEffect 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+        }
+
+        @keyframes laughTextEffect {
+            0% { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+            10% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-20px) scale(1.2);
+            }
+            80% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-40px) scale(1.2);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateX(-50%) translateY(-60px) scale(1);
+            }
+        }
+
+        .heal-sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #2ecc71;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .heal-ring {
+            position: absolute;
+            border: 2px solid #2ecc71;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 998;
+            animation: healRingExpand 1s ease-out forwards;
+        }
+
+        .heal-glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(46, 204, 113, 0.4) 0%, rgba(46, 204, 113, 0) 70%);
+            pointer-events: none;
+            z-index: 997;
+            animation: healGlowPulse 1s ease-out forwards;
+        }
+
+        .heal-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 996;
+        }
+
+        @keyframes healRingExpand {
+            0% {
+                width: 40px;
+                height: 40px;
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                width: 200px;
+                height: 200px;
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(2);
+            }
+        }
+
+        @keyframes healGlowPulse {
+            0% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(1.8);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(2.2);
+            }
+        }
+
+        .heal-amount {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #2ecc71;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 
+                0 0 10px #2ecc71,
+                0 0 20px #2ecc71,
+                0 0 30px #27ae60;
+            animation: healAmountFloat 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        @keyframes healAmountFloat {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+            20% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-20px) scale(1.2);
+            }
+            50% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-40px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(var(--final-x)) translateY(-80px) rotate(var(--final-angle)) scale(1);
+            }
+        }
+
+        .healing-bar {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .healing-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(46, 204, 113, 0) 0%,
+                rgba(46, 204, 113, 0.8) 50%,
+                rgba(46, 204, 113, 0) 100%);
+            animation: healingBarShine 1s ease-in-out;
+        }
+
+        @keyframes healingBarShine {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
     `;
     document.head.appendChild(style);
 }
 
-// Heal player function with enhanced visuals
+// Enhance healPlayer function with new visual effects
 function healPlayer(player, amount) {
+    // Store previous health for comparison
+    const previousHealth = player.health;
+    
     // Calculate new health (don't exceed 100)
     const newHealth = Math.min(player.health + amount, 100);
     const actualHealAmount = newHealth - player.health;
     player.health = newHealth;
-
+    
     // Update health bar
     updateHealthBar(player);
-
+    
+    // Add healing class to blood overlay
+    const overlay = player === gameState.player1 ? 
+        document.getElementById('left-blood-overlay') : 
+        document.getElementById('right-blood-overlay');
+    
+    if (overlay) {
+        overlay.classList.add('healing');
+        setTimeout(() => {
+            overlay.classList.remove('healing');
+        }, 1000);
+    }
+    
     // Show heal effects
     if (player.element && actualHealAmount > 0) {
+        // Add healing amount display with random angle
+        const healAmount = document.createElement('div');
+        healAmount.className = 'heal-amount';
+        healAmount.textContent = `+${actualHealAmount} HP`;
+        
+        // Calculate random final position
+        const randomAngle = -30 + Math.random() * 60; // Random angle between -30 and 30 degrees
+        const randomX = -100 + Math.random() * 200; // Random X offset between -100 and 100 pixels
+        
+        // Set custom properties for the animation
+        healAmount.style.setProperty('--final-angle', `${randomAngle}deg`);
+        healAmount.style.setProperty('--final-x', `${randomX}px`);
+        
+        player.element.appendChild(healAmount);
+
+        // Remove heal amount after animation
+        setTimeout(() => {
+            healAmount.remove();
+        }, 2000);
+
         // Add healing effect to health bar
         const healthBar = player.healthBar;
         if (healthBar) {
@@ -2078,7 +2546,7 @@ function healPlayer(player, amount) {
                 healthBar.classList.remove('healing');
             }, 1000);
         }
-
+        
         // Show heal amount
         const healText = document.createElement('div');
         healText.className = 'heal-effect';
@@ -2086,7 +2554,7 @@ function healPlayer(player, amount) {
         healText.style.left = '50%';
         healText.style.top = '50%';
         player.element.appendChild(healText);
-
+        
         // Create floating + symbols
         for (let i = 1; i <= 3; i++) {
             const plusSymbol = document.createElement('div');
@@ -2095,37 +2563,81 @@ function healPlayer(player, amount) {
             plusSymbol.style.left = '50%';
             plusSymbol.style.top = '40%';
             player.element.appendChild(plusSymbol);
-
+            
             // Remove plus symbols after animation
             setTimeout(() => {
                 plusSymbol.remove();
             }, 1400);
         }
-
+        
         // Remove heal text after animation
         setTimeout(() => {
             healText.remove();
         }, 1000);
-    }
-}
+        
+        // Reset player state and image after healing
+        setTimeout(() => {
+            resetPlayerIdleImage(player);
+            player.isAttacking = false;
+            player.attackType = null;
+        }, 1000);
 
-// Update health bar function
-function updateHealthBar(player) {
-    // Update health bar with percentage
-    if (player.healthBar) {
-        const percentage = player.health;
-        player.healthBar.style.width = percentage + '%';
-        
-        // Update color based on health percentage
-        if (percentage <= 20) {
-            player.healthBar.style.backgroundColor = '#e74c3c'; // Red for low health
-        } else if (percentage <= 50) {
-            player.healthBar.style.backgroundColor = '#f1c40f'; // Yellow for medium health
-        } else {
-            player.healthBar.style.backgroundColor = '#27ae60'; // Green for high health
+        // Add healing glow effect
+        const healGlow = document.createElement('div');
+        healGlow.className = 'heal-glow';
+        player.element.appendChild(healGlow);
+
+        // Add expanding rings
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const ring = document.createElement('div');
+                ring.className = 'heal-ring';
+                ring.style.left = '50%';
+                ring.style.top = '50%';
+                player.element.appendChild(ring);
+
+                setTimeout(() => ring.remove(), 1000);
+            }, i * 200);
         }
-        
-        player.healthBar.textContent = Math.round(percentage) + '%';
+
+        // Add sparkle particles
+        const particlesContainer = document.createElement('div');
+        particlesContainer.className = 'heal-particles';
+        player.element.appendChild(particlesContainer);
+
+        // Create multiple sparkles
+        for (let i = 0; i < 20; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'heal-sparkle';
+            
+            // Random position around the character
+            const angle = (Math.random() * Math.PI * 2);
+            const distance = Math.random() * 50;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            sparkle.style.left = '50%';
+            sparkle.style.top = '50%';
+            sparkle.style.setProperty('--tx', `${tx}px`);
+            sparkle.style.setProperty('--ty', `${ty}px`);
+            sparkle.style.animation = `healSparkle ${0.5 + Math.random() * 0.5}s ease-out forwards`;
+            
+            particlesContainer.appendChild(sparkle);
+        }
+
+        // Add healing effect to health bar
+        if (player.healthBar) {
+            player.healthBar.classList.add('healing-bar');
+            setTimeout(() => {
+                player.healthBar.classList.remove('healing-bar');
+            }, 1000);
+        }
+
+        // Clean up additional effects
+        setTimeout(() => {
+            healGlow.remove();
+            particlesContainer.remove();
+        }, 1000);
     }
 }
 
@@ -2138,21 +2650,111 @@ function createDashClone(player) {
     clone.classList.add('dash-clone');
     clone.style.left = player.position + 'px';
     
-    // Store reference to original player
-    clone.dataset.originalPlayer = player === gameState.player1 ? 'player1' : 'player2';
+    // Store reference to original player and character
+    const isPlayer1 = player === gameState.player1;
+    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    clone.dataset.originalPlayer = isPlayer1 ? 'player1' : 'player2';
+    clone.dataset.character = characterId;
     clone.dataset.hit = 'false';
     
     // Add clone to arena
     const arena = document.getElementById('fightArena');
     if (arena) {
         arena.appendChild(clone);
-        
-        // Remove clone after animation if not hit
-        setTimeout(() => {
-            if (clone && clone.parentElement && clone.dataset.hit === 'false') {
-                clone.remove();
-            }
-        }, 2000);
+
+        // Add hit detection for both Curse-or and Reign
+        if (characterId === 'curse-or' || characterId === 'reign') {
+            const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+            let cloneHit = false;
+
+            // Check for hits every 50ms for better responsiveness
+            const hitCheckInterval = setInterval(() => {
+                if (!clone || !clone.parentElement || cloneHit) {
+                    clearInterval(hitCheckInterval);
+                    return;
+                }
+
+                if (opponent.isAttacking) {
+                    // Calculate distance between opponent and clone
+                    const distance = Math.abs(opponent.position - parseFloat(clone.style.left));
+                    
+                    if (distance < 150) { // Increased hit detection range
+                        cloneHit = true;
+                        clone.dataset.hit = 'true';
+                        clone.classList.add('hit');
+
+                        // Heal the player by 30 points when clone is hit
+                        healPlayer(player, 30);
+
+                        // Play character-specific laugh with echo effect
+                        const laughSound1 = new Audio(characterId === 'curse-or' ? 
+                            '../assests/audio/movementSFX/Curse-or laugh.mp3' : 
+                            '../assests/audio/movementSFX/Reign_laugh.mp3');
+                        const laughSound2 = new Audio(characterId === 'curse-or' ? 
+                            '../assests/audio/movementSFX/Curse-or laugh.mp3' : 
+                            '../assests/audio/movementSFX/Reign_laugh.mp3');
+                        
+                        laughSound1.volume = 0.8;
+                        laughSound2.volume = 0.6;
+                        laughSound2.playbackRate = 0.9;
+                        
+                        laughSound1.play().catch(e => console.warn('Laugh sound play failed:', e));
+                        setTimeout(() => {
+                            laughSound2.play().catch(e => console.warn('Laugh sound play failed:', e));
+                        }, 200);
+
+                        // Create multiple laugh text effects for a more dramatic display
+                        const laughTexts = ['HAHAHAH!', 'GOT YOU!', 'TOO SLOW!'];
+                        laughTexts.forEach((text, index) => {
+                            setTimeout(() => {
+                                const laughText = document.createElement('div');
+                                laughText.className = 'laugh-text';
+                                laughText.textContent = text;
+                                laughText.style.top = `-${80 + index * 40}px`; // Stack texts vertically
+                                player.element.appendChild(laughText);
+
+                                // Remove laugh text after animation
+                                setTimeout(() => {
+                                    laughText.remove();
+                                }, 2000);
+                            }, index * 300); // Stagger the appearance
+                        });
+
+                        // Add dramatic flash effect to the arena
+                        const flash = document.createElement('div');
+                        flash.className = 'clone-hit-flash';
+                        arena.appendChild(flash);
+                        setTimeout(() => flash.remove(), 500);
+
+                        // Add screen shake effect
+                        arena.classList.add('screen-shake');
+                        setTimeout(() => arena.classList.remove('screen-shake'), 500);
+
+                        // Remove clone after enhanced hit animation
+                        setTimeout(() => {
+                            clone.remove();
+                        }, 1000);
+
+                        clearInterval(hitCheckInterval);
+                    }
+                }
+            }, 50);
+
+            // Clear interval after 2 seconds if no hit
+            setTimeout(() => {
+                if (!cloneHit && clone && clone.parentElement) {
+                    clearInterval(hitCheckInterval);
+                    clone.remove();
+                }
+            }, 2000);
+        } else {
+            // For other characters, just remove after animation
+            setTimeout(() => {
+                if (clone && clone.parentElement) {
+                    clone.remove();
+                }
+            }, 2000);
+        }
     }
 }
 
@@ -2167,6 +2769,17 @@ function performDash(player, direction) {
         showDashCooldown(player, remainingCooldown);
         return;
     }
+
+    // Check if player has enough stamina to dash (30%)
+    if (!consumeStamina(player, 30)) {
+        showStaminaWarning(player);
+        return;
+    }
+
+    // Play shadow step sound
+    const dashSound = new Audio('../assests/audio/movementSFX/Shadow_step.mp3');
+    dashSound.volume = 0.6;
+    dashSound.play().catch(e => console.warn('Dash sound play failed:', e));
 
     // Create clone effect at current position
     createDashClone(player);
@@ -2231,225 +2844,77 @@ function showDashCooldown(player, seconds) {
     }, 1000);
 }
 
-// Add new function for Curse-Or combos
-function checkCurseOrCombos(player) {
-    const isPlayer1 = player === gameState.player1;
-    const playerComboState = isPlayer1 ? comboState.player1 : comboState.player2;
-    const sequence = playerComboState.sequence.join(',');
+// Add after initGameEngine function
+function createStaminaBar(player) {
+    const staminaBar = document.createElement('div');
+    staminaBar.className = 'stamina-bar';
+    
+    const staminaFill = document.createElement('div');
+    staminaFill.className = 'stamina-bar-fill';
+    staminaBar.appendChild(staminaFill);
+    
+    const staminaWarning = document.createElement('div');
+    staminaWarning.className = 'stamina-warning';
+    staminaWarning.textContent = 'Low Stamina!';
+    staminaBar.appendChild(staminaWarning);
+    
+    return staminaBar;
+}
 
-    // Define combo patterns and animations based on character
-    const combos = {
-        'curse-or': {
-            'punch,punch,kick': {
-                name: 'Shadow Strike',
-                damage: 25,
-                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
-                duration: 2000  // 2 seconds for animation
-            },
-            'kick,kick,punch': {
-                name: 'Demon Crusher',
-                damage: 30,
-                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
-                duration: 2000
-            },
-            'punch,kick,punch': {
-                name: 'Dark Reaper',
-                damage: 35,
-                animation: '../assests/players/character_1/Right_Combo-ezgif.com-gif-maker.gif',
-                duration: 2000
-            }
-        },
-        'reign': {
-            'punch,punch,kick': {
-                name: 'Ice Storm',
-                damage: 25,
-                animation: '../assests/players/character_2/2_Right_combo.gif',
-                duration: 2000
-            },
-            'kick,kick,punch': {
-                name: 'Frost Breaker',
-                damage: 30,
-                animation: '../assests/players/character_2/2_Right_combo.gif',
-                duration: 2000
-            },
-            'punch,kick,punch': {
-                name: 'Arctic Slash',
-                damage: 35,
-                animation: '../assests/players/character_2/2_Right_combo.gif',
-                duration: 2000
+function updateStaminaBar(player) {
+    // Update both stamina bars
+    if (player.staminaBar) {
+        const staminaFill = player.staminaBar.querySelector('.stamina-bar-fill');
+        const staminaWarning = player.staminaBar.querySelector('.stamina-warning');
+        
+        if (staminaFill) {
+            const percentage = player.stamina;
+            staminaFill.style.width = percentage + '%';
+            
+            // Update color and warning based on stamina level
+            if (percentage <= 20) {
+                player.staminaBar.classList.add('low');
+                staminaWarning.classList.add('show');
+            } else {
+                player.staminaBar.classList.remove('low');
+                staminaWarning.classList.remove('show');
             }
         }
-    };
-
-    // Get character-specific combos
-    const characterCombos = combos[player.character];
-    if (!characterCombos) return;
-
-    // Check if current sequence matches any combo
-    for (const [pattern, combo] of Object.entries(characterCombos)) {
-        if (sequence.endsWith(pattern)) {
-            executeCombo(player, combo);
-            playerComboState.sequence = []; // Reset sequence after successful combo
-            break;
+    }
+    
+    // Update main stamina bar
+    if (player.mainStaminaBar) {
+        const percentage = player.stamina;
+        player.mainStaminaBar.style.width = percentage + '%';
+        
+        // Update color based on stamina level
+        if (percentage <= 20) {
+            player.mainStaminaBar.classList.add('low');
+        } else {
+            player.mainStaminaBar.classList.remove('low');
         }
     }
 }
 
-// Update execute combo function with proper vertical movement
-function executeCombo(player, combo) {
-    const isPlayer1 = player === gameState.player1;
-    const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+// Add stamina regeneration function
+function regenerateStamina(player) {
+    const currentTime = Date.now();
+    const timeSinceLastDamage = currentTime - player.lastDamageTaken;
+    const timeSinceLastRegen = currentTime - player.lastStaminaRegen;
     
-    // Set player in combo state
-    player.isInCombo = true;
-    player.isAttacking = true;
-    
-    // Add combo class for z-index handling
-    player.element.classList.add('in-combo');
-
-    // Show combo effect
-    showComboEffect(player, combo.name);
-
-    // Special handling for Curse-Or's combo
-    if (player.character === 'curse-or') {
-        const playerImage = player.element?.querySelector('.fighter-image');
-        const opponentElement = opponent.element;
-        const opponentImage = opponentElement?.querySelector('.fighter-image');
-        if (!playerImage || !opponentElement || !opponentImage) return;
-
-        // Store initial positions
-        const initialPlayerPos = player.position;
-        const initialOpponentPos = opponent.position;
-        const direction = opponent.position > player.position ? 1 : -1;
-
-        // Sequence 1: Initial punch and small displacement
-        playerImage.style.backgroundImage = `url(${getAttackAnimationPath(player.character, 'punch')})`;
-        setTimeout(() => {
-            opponent.position += direction * 20;
-            opponentElement.style.left = opponent.position + 'px';
-            applyDamage(opponent, 8);
-            showHitEffect(opponent);
-        }, 200);
-
-        // Sequence 2: First teleport and uppercut
-        setTimeout(() => {
-            // Remove createDashClone(player);
-            
-            // Teleport directly to opponent
-            player.position = opponent.position - (direction * 10);
-            player.element.style.left = player.position + 'px';
-            
-            // Uppercut animation
-            playerImage.style.backgroundImage = `url(${combo.animation})`;
-            
-            // Launch opponent upward with animation
-            opponentElement.classList.add('uppercut-victim');
-            
-            applyDamage(opponent, 12);
-            showHitEffect(opponent);
-        }, 500);
-
-        // Sequence 3: Second teleport and ground smash
-        setTimeout(() => {
-            // Remove createDashClone(player);
-            
-            // Teleport to where opponent will land
-            player.position = opponent.position;
-            player.element.style.left = player.position + 'px';
-            
-            // Ground smash animation
-            playerImage.style.backgroundImage = `url(${combo.animation})`;
-            
-            // Remove uppercut and add ground fall animation
-            opponentElement.classList.remove('uppercut-victim');
-            opponentElement.classList.add('ground-fall');
-            
-            applyDamage(opponent, 15);
-            showHitEffect(opponent);
-        }, 900);
-
-        // Sequence 4: Final teleport and multi-kick
-        setTimeout(() => {
-            // Remove createDashClone(player);
-            
-            // Remove ground fall animation
-            opponentElement.classList.remove('ground-fall');
-            
-            // Quick teleport to side of opponent
-            player.position = opponent.position - (direction * 30);
-            player.element.style.left = player.position + 'px';
-            
-            // Multi-kick animation
-            playerImage.style.backgroundImage = `url(${combo.animation})`;
-            
-            // Rapid kicks displacement
-            let kickCount = 0;
-            const maxKicks = 5;
-            const kickInterval = setInterval(() => {
-                if (kickCount < maxKicks) {
-                    opponent.position += direction * 20;
-                    opponentElement.style.transition = 'left 0.1s linear';
-                    opponentElement.style.left = opponent.position + 'px';
-                    applyDamage(opponent, 3);
-                    showHitEffect(opponent);
-                    kickCount++;
-                } else {
-                    clearInterval(kickInterval);
-                }
-            }, 100);
-        }, 1300);
-
-        // Reset everything after combo
-        setTimeout(() => {
-            // Remove all animation classes
-            opponentElement.classList.remove('uppercut-victim', 'ground-fall');
-            player.element.classList.remove('in-combo');
-            
-            // Reset transitions
-            playerImage.style.transition = '';
-            opponentElement.style.transition = '';
-            
-            // Reset transforms
-            playerImage.style.transform = '';
-            opponentImage.style.transform = '';
-            
-            // Reset states
-            player.isInCombo = false;
-            player.isAttacking = false;
-            
-            // Reset to idle animations
-            resetPlayerIdleImage(player);
-            resetPlayerIdleImage(opponent);
-        }, 2200);
-    } else {
-        // Handle other characters' combos normally
-        const playerImage = player.element?.querySelector('.fighter-image');
-        if (playerImage && combo.animation) {
-            playerImage.style.backgroundImage = `url(${combo.animation})`;
-            
-            // Calculate distance to opponent
-            const distance = Math.abs(player.position - opponent.position);
-            
-            // Apply damage if in range
-            if (distance < 100) {
-                if (!opponent.isGuarding) {
-                    setTimeout(() => {
-                        applyDamage(opponent, combo.damage);
-                        showHitEffect(opponent);
-                    }, combo.duration / 2);
-                } else {
-                    setTimeout(() => {
-                        showBlockedEffect(opponent);
-                    }, combo.duration / 2);
-                }
-            }
-
-            // Reset after combo
-            setTimeout(() => {
-                resetPlayerIdleImage(player);
-                player.isInCombo = false;
-                player.isAttacking = false;
-            }, combo.duration);
-        }
+    // Only regenerate if it's been 2 seconds since last damage and 100ms since last regen
+    if (timeSinceLastDamage >= 2000 && timeSinceLastRegen >= 100) {
+        player.stamina = Math.min(100, player.stamina + 1); // Regenerate 1% every 100ms
+        player.lastStaminaRegen = currentTime;
+        updateStaminaBar(player);
     }
+}
+
+// Add stamina consumption function
+function consumeStamina(player, amount) {
+    if (player.stamina < amount) return false;
+    
+    player.stamina = Math.max(0, player.stamina - amount);
+    updateStaminaBar(player);
+    return true;
 }

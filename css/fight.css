@@ -22,6 +22,75 @@ body {
   box-shadow: inset 0 0 150px 60px rgba(0, 0, 0, 0.8);
 }
 
+/* Blood overlay containers */
+.blood-overlay {
+  position: fixed;
+  top: 0;
+  width: 50%;
+  height: 100vh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 999;
+}
+
+#left-blood-overlay {
+  left: 0;
+  background-image: url('../assests/overlay/blood1.png');
+  -webkit-mask-image: linear-gradient(to right, black, transparent);
+  mask-image: linear-gradient(to right, black, transparent);
+}
+
+#right-blood-overlay {
+  right: 0;
+  background-image: url('../assests/overlay/blood1.png');
+  -webkit-mask-image: linear-gradient(to left, black, transparent);
+  mask-image: linear-gradient(to left, black, transparent);
+}
+
+#center-blood-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-image: url('../assests/overlay/blood2.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 998;  /* Below the side overlays */
+  opacity: 0;    /* Initial opacity */
+}
+
+/* Remove blood overlay vignette */
+.blood-overlay::after {
+  display: none;
+}
+
+/* Restore healing effect */
+.blood-overlay.healing {
+  animation: healingPulse 1s ease;
+  filter: hue-rotate(120deg) brightness(1.2);
+}
+
+/* Restore critical effect */
+.blood-overlay.critical {
+  animation: bloodPulse 0.5s ease;
+  filter: brightness(1.5) contrast(1.5) saturate(2);
+}
+
+@keyframes bloodPulse {
+  0% { filter: brightness(1.5) contrast(1.5) saturate(2); }
+  50% { filter: brightness(2) contrast(2) saturate(3); }
+  100% { filter: brightness(1.5) contrast(1.5) saturate(2); }
+}
+
+@keyframes healingPulse {
+  0% { filter: hue-rotate(120deg) brightness(1.2); }
+  50% { filter: hue-rotate(120deg) brightness(1.5); }
+  100% { filter: hue-rotate(120deg) brightness(1.2); }
+}
+
 /* Add vignette overlay */
 .background-container::after {
   content: '';
@@ -30,8 +99,21 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
   pointer-events: none;
+}
+
+/* Add bottom vignette overlay */
+.background-container::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 70%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 #fightScreen {
@@ -80,6 +162,8 @@ body {
   width: 100%;
   padding: 0 20px;
   margin-bottom: 10px;
+  position: relative;
+  z-index: 10;
 }
 
 .player-health {
@@ -90,24 +174,26 @@ body {
 }
 
 .player-health-name {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
   font-family: 'Press Start 2P', cursive;
   color: #fff;
   margin-bottom: 5px;
-  text-shadow: 0 0 10px rgba(255, 0, 0, 0.9);
-  letter-spacing: 1px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8),
+               0 0 10px rgba(255, 0, 0, 0.9);
+  letter-spacing: 2px;
 }
 
 .health-bar-container {
   width: 100%;
-  height: 25px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid #fff;
-  border-radius: 5px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 3px solid #fff;
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.7),
+              inset 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
 #player1-health .health-bar-container {
@@ -116,16 +202,134 @@ body {
 
 .health-bar {
   height: 100%;
-  background: linear-gradient(to right, #ff0000, #ff6b6b);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, 
+    #ff0000 0%,
+    #ff4d4d 50%,
+    #ff0000 100%
+  );
+  transition: width 0.3s ease-out;
   display: flex;
   justify-content: center;
   align-items: center;
   color: white;
   font-weight: bold;
-  font-size: 16px;
-  font-family: 'VT323', monospace;
-  text-shadow: 1px 1px 2px black;
+  font-size: 20px;
+  font-family: 'Press Start 2P', cursive;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add shine effect to health bar */
+.health-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shine 3s infinite;
+}
+
+/* Add pulsing effect for low health */
+.health-bar.low {
+  background: linear-gradient(90deg, 
+    #ff0000 0%,
+    #990000 50%,
+    #ff0000 100%
+  );
+  animation: pulse 1s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+
+@keyframes pulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+/* Add damage flash effect */
+.health-bar.damage {
+  animation: damageFlash 0.3s;
+}
+
+@keyframes damageFlash {
+  0% { filter: brightness(2); }
+  100% { filter: brightness(1); }
+}
+
+/* Add main stamina bar styles */
+.main-stamina-container {
+  width: 100%;
+  height: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #3498db;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5),
+              inset 0 0 10px rgba(0, 0, 0, 0.5);
+  margin-top: 5px;
+}
+
+.main-stamina-bar {
+  height: 100%;
+  background: linear-gradient(90deg, 
+    #3498db 0%,
+    #2980b9 50%,
+    #3498db 100%
+  );
+  transition: width 0.2s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add shine effect to main stamina bar */
+.main-stamina-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shine 3s infinite;
+}
+
+/* Add pulsing effect for low stamina */
+.main-stamina-bar.low {
+  background: linear-gradient(90deg, 
+    #e74c3c 0%,
+    #c0392b 50%,
+    #e74c3c 100%
+  );
+  animation: staminaPulse 1s infinite;
+}
+
+@keyframes staminaPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+#player1-health .main-stamina-container {
+  direction: rtl; /* Make player 1's stamina bar decrease from right to left */
 }
 
 #fightArena {
@@ -169,7 +373,7 @@ body {
   width: 200px;
   height: 300px;
   position: relative;
-  margin-bottom: 20px;
+  
   transition: all 0.2s ease;
   display: flex;
   justify-content: center;
@@ -207,8 +411,9 @@ body {
 
 /* Player 1 specific styles */
 #player1 .fighter-image {
-  width: 100%;
-  height: 100%;
+  width: 170px;
+  height: 200;
+  margin-bottom: -60px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -705,4 +910,225 @@ body {
     transform: translateX(-50%) translateY(-30px);
     opacity: 0;
   }
+}
+
+/* Update screen shake animation to not affect overlays */
+@keyframes hitShake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-5px, -2px) rotate(-3deg); }
+    50% { transform: translate(5px, 2px) rotate(3deg); }
+    75% { transform: translate(-3px, -1px) rotate(-2deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.screen-shake {
+    animation: hitShake 0.3s ease-in-out;
+    transform-style: preserve-3d;
+}
+
+.stamina-bar {
+    position: absolute;
+    width: 100%;
+    height: 5px;
+    background-color: #34495e;
+    bottom: -15px;
+    left: 0;
+    border-radius: 2px;
+    overflow: hidden;
+    visibility: hidden; /* Hide the original stamina bar */
+}
+
+.stamina-bar-fill {
+    width: 100%;
+    height: 100%;
+    background-color: #3498db;
+    transition: width 0.2s ease-out;
+    visibility: hidden; /* Hide the stamina bar fill */
+}
+
+.clone-hit-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(39, 174, 96, 0.2) 0%, rgba(39, 174, 96, 0) 70%);
+    pointer-events: none;
+    z-index: 995;
+    animation: cloneHitFlash 0.5s ease-out forwards;
+}
+
+@keyframes cloneHitFlash {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* Enhanced clone hit effect */
+.dash-clone.hit {
+    animation: enhancedCloneHitEffect 1s ease-out forwards !important;
+    filter: brightness(1.5) drop-shadow(0 0 20px #27ae60) !important;
+}
+
+@keyframes enhancedCloneHitEffect {
+    0% { 
+        opacity: 0.8;
+        transform: scale(1);
+        filter: brightness(1.3) drop-shadow(0 0 20px #27ae60);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.4) rotate(5deg);
+        filter: brightness(1.5) drop-shadow(0 0 30px #27ae60);
+    }
+    100% { 
+        opacity: 0;
+        transform: scale(1.8) rotate(-5deg);
+        filter: brightness(1.7) drop-shadow(0 0 40px #27ae60);
+    }
+}
+
+/* Enhanced laugh text effects */
+.laugh-text {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #e74c3c;
+    font-size: 32px;
+    font-weight: bold;
+    font-family: 'Press Start 2P', cursive;
+    text-shadow: 
+        0 0 10px #c0392b,
+        0 0 15px #c0392b,
+        0 0 20px #c0392b;
+    animation: enhancedLaughTextEffect 2s ease-out forwards;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+}
+
+@keyframes enhancedLaughTextEffect {
+    0% { 
+        opacity: 0;
+        transform: translateX(-50%) translateY(0) scale(1) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-20px) scale(1.3) rotate(-5deg);
+    }
+    20% {
+        transform: translateX(-50%) translateY(-25px) scale(1.2) rotate(5deg);
+    }
+    80% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-40px) scale(1.2) rotate(-3deg);
+    }
+    100% { 
+        opacity: 0;
+        transform: translateX(-50%) translateY(-60px) scale(1) rotate(0deg);
+    }
+}
+
+/* Enhanced healing effects for clone hit */
+.healing-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(39, 174, 96, 0) 0%,
+        rgba(39, 174, 96, 0.7) 50%,
+        rgba(39, 174, 96, 0) 100%);
+    animation: enhancedHealingBarShine 1s ease-in-out;
+    filter: brightness(1.2);
+}
+
+@keyframes enhancedHealingBarShine {
+    0% {
+        transform: translateX(-100%) scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: translateX(0%) scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%) scale(1);
+        opacity: 0.5;
+    }
+}
+
+/* Enhanced screen shake for clone hit */
+@keyframes enhancedHitShake {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-8px, -4px) rotate(-5deg); }
+    50% { transform: translate(8px, 4px) rotate(5deg); }
+    75% { transform: translate(-5px, -2px) rotate(-3deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.screen-shake {
+    animation: enhancedHitShake 0.5s ease-in-out;
+}
+
+.heal-effect {
+    color: #27ae60;
+    text-shadow: 
+        0 0 5px #27ae60,
+        0 0 10px #27ae60,
+        0 0 15px #219a52;
+}
+
+.heal-plus {
+    color: #27ae60;
+    text-shadow: 
+        0 0 5px #27ae60,
+        0 0 10px #27ae60,
+        0 0 15px #219a52;
+}
+
+.heal-amount {
+    color: #27ae60;
+    text-shadow: 
+        0 0 10px #27ae60,
+        0 0 15px #27ae60,
+        0 0 20px #219a52;
+}
+
+.heal-sparkle {
+    background: #27ae60;
+}
+
+.heal-ring {
+    border: 2px solid #27ae60;
+}
+
+.heal-glow {
+    background: radial-gradient(circle, rgba(39, 174, 96, 0.3) 0%, rgba(39, 174, 96, 0) 70%);
+}
+
+@keyframes healGlowPulse {
+    0% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scale(1.8);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.2);
+    }
 }

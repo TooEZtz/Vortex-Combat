@@ -1,3 +1,19 @@
+// Maintain fullscreen state
+document.addEventListener('DOMContentLoaded', () => {
+    // Ensure we're in fullscreen mode if we were before
+    if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn('Auto-fullscreen failed:', err);
+        });
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+        sessionStorage.setItem('gameInFullscreen', 'true');
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const isReplay = sessionStorage.getItem('isReplay') === 'true';
     
@@ -1655,10 +1671,10 @@ function setupGameTimer() {
     };
 
     const startTimer = () => {
-        const gameTimer = setInterval(() => {
+  const gameTimer = setInterval(() => {
             // Only count down if round is still active and not paused
             if (window.gameState && window.gameState.roundStarted && !window.gameState.roundPaused) {
-                timeLeft--;
+      timeLeft--;
                 
                 // Update timer display with leading zero
                 if (timerElement) {
@@ -1666,7 +1682,7 @@ function setupGameTimer() {
                 }
                 
                 // Check if time is up
-                if (timeLeft <= 0) {
+      if (timeLeft <= 0) {
                     if (!isOvertime) {
                         // Start overtime
                         isOvertime = true;
@@ -1690,11 +1706,11 @@ function setupGameTimer() {
                     }
                     
                     // Overtime is over, start the dramatic showdown
-                    clearInterval(gameTimer);
+          clearInterval(gameTimer);
                     startDramaticShowdown();
                 }
-            }
-        }, 1000);
+      }
+  }, 1000);
 
         // Store the timer reference in gameState
         window.gameState.currentTimer = gameTimer;
@@ -3378,7 +3394,7 @@ window.addEventListener('gameOver', (event) => {
             document.body.appendChild(drawText);
             
             // Remove text after 3 seconds
-            setTimeout(() => {
+        setTimeout(() => {
                 drawText.style.opacity = '0';
                 setTimeout(() => drawText.remove(), 1000);
             }, 3000);
@@ -3400,7 +3416,7 @@ window.addEventListener('gameOver', (event) => {
                 setTimeout(() => decisionText.remove(), 1000);
             }, 3000);
         }
-    } else {
+                } else {
         victoryMusic.play();
     }
     
@@ -3419,14 +3435,14 @@ window.addEventListener('gameOver', (event) => {
 
     // Initial burst
     for (let i = 0; i < 50; i++) {
-        setTimeout(() => {
+                    setTimeout(() => {
             createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
         }, i * 20);
     }
 
     // Secondary bursts
     for (let j = 0; j < 3; j++) {
-        setTimeout(() => {
+                    setTimeout(() => {
             for (let i = 0; i < 20; i++) {
                 createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
             }
@@ -3445,8 +3461,17 @@ window.addEventListener('gameOver', (event) => {
         document.body.appendChild(announcement);
 
         // Remove announcement after overlay appears
-        setTimeout(() => {
+            setTimeout(() => {
             announcement.remove();
         }, 3000);
     }
 });
+
+// Add this near other navigation functions
+function goToMainMenu() {
+    // Set a flag to skip the splash screen
+    sessionStorage.setItem('skipSplash', 'true');
+    
+    // Navigate to player selection page
+    window.location.href = 'playerselection.html';
+}

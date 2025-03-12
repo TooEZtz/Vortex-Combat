@@ -41,7 +41,7 @@ const SoundManager = {
         // Set up all music tracks
         Object.values(this.music).forEach(track => {
             if (track) {
-                track.volume = 0.3; // 30% volume for background music
+                track.volume = 0.8; // 30% volume for background music
                 track.loop = true; // Loop background music
                 
                 // Add event listeners to track loading

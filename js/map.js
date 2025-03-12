@@ -1,6 +1,28 @@
 let selectedMap = null;
 let mapImages = {}; // Store map images for hover effect
 
+// Maintain fullscreen state
+document.addEventListener('DOMContentLoaded', () => {
+    // Ensure we're in fullscreen mode if we were before
+    if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn('Auto-fullscreen failed:', err);
+        });
+    }
+
+    // Check if we're coming from player selection
+    const comingFromPlayerSelection = document.referrer.endsWith('playerselection.html');
+    if (comingFromPlayerSelection) {
+        createControlsOverlay();
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+        sessionStorage.setItem('gameInFullscreen', 'true');
+    }
+});
+
 // Function to handle back button click with sound
 function goToPlayerSelection() {
     console.log('Going back to player selection...');
@@ -335,4 +357,121 @@ function setupMapSelection() {
             }
         });
     }
+}
+
+// Function to create and show the controls overlay
+function createControlsOverlay() {
+    const overlayContainer = document.createElement('div');
+    overlayContainer.className = 'controls-overlay';
+    overlayContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-family: 'Arial', sans-serif;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        text-align: center;
+        padding: 2rem;
+        background: rgba(51, 51, 51, 0.8);
+        border-radius: 10px;
+        max-width: 800px;
+        margin: 20px;
+    `;
+
+    const title = document.createElement('h2');
+    title.textContent = 'GAME CONTROLS';
+    title.style.cssText = `
+        font-size: 2.5em;
+        margin-bottom: 1.5em;
+        color: #ff0000;
+        text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    `;
+
+    const controlsContainer = document.createElement('div');
+    controlsContainer.style.cssText = `
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2em;
+    `;
+
+    // Player 1 Controls
+    const player1Controls = document.createElement('div');
+    player1Controls.innerHTML = `
+        <h3 style="color: #4a9eff; font-size: 1.5em; margin-bottom: 1em;">PLAYER 1</h3>
+        <div style="text-align: left; font-size: 1.2em; line-height: 1.8;">
+            <p>🎮 Movement: W A S D</p>
+            <p>👊 Light Attack: U</p>
+            <p>💥 Heavy Attack: I</p>
+            <p>🛡️ Block: O</p>
+            <p>⚡ Special Move: P</p>
+        </div>
+    `;
+
+    // Player 2 Controls
+    const player2Controls = document.createElement('div');
+    player2Controls.innerHTML = `
+        <h3 style="color: #ff4a4a; font-size: 1.5em; margin-bottom: 1em;">PLAYER 2</h3>
+        <div style="text-align: left; font-size: 1.2em; line-height: 1.8;">
+            <p>🎮 Movement: ↑ ← ↓ →</p>
+            <p>👊 Light Attack: NUM-1</p>
+            <p>💥 Heavy Attack: NUM-2</p>
+            <p>🛡️ Block: NUM-3</p>
+            <p>⚡ Special Move: NUM-0</p>
+        </div>
+    `;
+
+    const continueText = document.createElement('p');
+    continueText.textContent = 'Press ENTER or Click anywhere to continue';
+    continueText.style.cssText = `
+        font-size: 1.2em;
+        color: #ffff00;
+        margin-top: 2em;
+        animation: pulse 1.5s infinite;
+    `;
+
+    // Add animation style
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Add all elements to the overlay
+    controlsContainer.appendChild(player1Controls);
+    controlsContainer.appendChild(player2Controls);
+    content.appendChild(title);
+    content.appendChild(controlsContainer);
+    content.appendChild(continueText);
+    overlayContainer.appendChild(content);
+    document.body.appendChild(overlayContainer);
+
+    // Event listeners to close overlay
+    const closeOverlay = () => {
+        overlayContainer.style.opacity = '0';
+        overlayContainer.style.transition = 'opacity 0.5s';
+        setTimeout(() => overlayContainer.remove(), 500);
+    };
+
+    overlayContainer.addEventListener('click', closeOverlay);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            closeOverlay();
+        }
+    });
 }

@@ -16,60 +16,6 @@ const characters = [
     { id: 'reign', name: 'REIGN' }
 ];
 
-// Function to handle back button click with sound
-function goToMainMenu() {
-    console.log('Going to main menu...');
-    
-    // Play click sound and navigate after it completes
-    if (window.SoundManager) {
-        // Create a new audio element specifically for this navigation
-        const clickSound = new Audio('../assests/audio/button_click.mp3');
-        clickSound.volume = 0.5;
-        
-        // When the sound can play, play it and set up navigation
-        clickSound.addEventListener('canplaythrough', function() {
-            console.log('Navigation sound loaded, playing...');
-            
-            // Play the sound
-            const playPromise = clickSound.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('Navigation sound played, waiting before redirect...');
-                    
-                    // Wait for the sound to play a bit before navigating
-                    setTimeout(function() {
-                        console.log('Navigating to main menu...');
-                        // Fix the path to splash.html
-                        window.location.href = 'splash.html';
-                    }, 300);
-                }).catch(error => {
-                    console.error('Error playing navigation sound:', error);
-                    // Navigate anyway if sound fails
-                    window.location.href = 'splash.html';
-                });
-            } else {
-                // Fallback if play() doesn't return a promise
-                setTimeout(function() {
-                    window.location.href = 'splash.html';
-                }, 300);
-            }
-        });
-        
-        // If there's an error loading the sound, navigate anyway
-        clickSound.addEventListener('error', function() {
-            console.error('Error loading navigation sound');
-            window.location.href = 'splash.html';
-        });
-        
-        // Start loading the sound
-        clickSound.load();
-    } else {
-        // If SoundManager is not available, just navigate
-        window.location.href = 'splash.html';
-    }
-}
-
 // Function to update VS text visibility
 function updateVsVisibility() {
     const player1Visible = document.getElementById('player1Preview').classList.contains('visible');
@@ -264,6 +210,9 @@ function goToMapSelection() {
             sessionStorage.getItem('player1Character'),
             sessionStorage.getItem('player2Character'));
         
+        // Maintain fullscreen state during transition
+        const wasFullscreen = document.fullscreenElement || sessionStorage.getItem('gameInFullscreen');
+        
         // Navigate to maps screen
         window.location.href = 'maps.html';
     }
@@ -319,17 +268,450 @@ function forceCharacterPreview(player, character) {
     console.log(`Forced preview for Player ${player}, character: ${character}, image: ${imagePath}`);
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page loaded, initializing...');
+// Game menu system
+function createGameMenu() {
+    const menuOverlay = document.createElement('div');
+    menuOverlay.id = 'gameMenuOverlay';
+    menuOverlay.className = 'menu-overlay';
+    
+    // Set the background image and effects
+    menuOverlay.style.cssText = `
+        background-image: 
+            linear-gradient(
+                rgba(0, 0, 0, 0.6), 
+                rgba(0, 0, 0, 0.6)
+            ),
+            radial-gradient(
+                circle at center,
+                transparent 0%,
+                rgba(0, 0, 0, 0.9) 100%
+            ),
+            url('../assests/maps/bgMain.gif');
+        background-size: 200% 200%;
+        background-position: center;
+        width: 100%;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+    `;
+
+    // Create particle container
+    const particleContainer = document.createElement('div');
+    particleContainer.id = 'particleContainer';
+    menuOverlay.appendChild(particleContainer);
+
+    // Create menu container
+    const menuContainer = document.createElement('div');
+    menuContainer.className = 'menu-container';
+
+    // Create title
+    const title = document.createElement('h1');
+    title.className = 'game-title';
+    title.textContent = 'VORTEX COMBAT';
+    title.innerHTML = 'VORTEX <span class="shift-text">COMBAT</span>';
+    menuContainer.appendChild(title);
+
+    // Menu options
+    const menuOptions = [
+        { text: 'LOCAL PvP', action: startLocalPvP },
+        { text: 'ONLINE PvP', action: null, disabled: true, comingSoon: true },
+        { text: 'AUDIO SETTINGS', action: showAudioSettings },
+        { text: 'CREDITS', action: showCredits },
+        { text: 'ABOUT', action: showAbout }
+    ];
+
+    menuOptions.forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'menu-button';
+        if (option.disabled) {
+            button.classList.add('disabled');
+        }
+
+        // Create button content container for complex layout
+        const buttonContent = document.createElement('div');
+        buttonContent.className = 'button-content';
+
+        // Add main text
+        const textSpan = document.createElement('span');
+        textSpan.textContent = option.text;
+        buttonContent.appendChild(textSpan);
+
+        // Add coming soon label if applicable
+        if (option.comingSoon) {
+            const comingSoon = document.createElement('span');
+            comingSoon.className = 'coming-soon';
+            comingSoon.textContent = 'Coming Soon';
+            buttonContent.appendChild(comingSoon);
+        }
+
+        button.appendChild(buttonContent);
+
+        if (!option.disabled) {
+            button.addEventListener('click', () => {
+                playMenuSound();
+                option.action();
+            });
+        }
+
+        menuContainer.appendChild(button);
+    });
+
+    menuOverlay.appendChild(menuContainer);
+    document.body.appendChild(menuOverlay);
+
+    // Start particle animation
+    createParticles();
+}
+
+function createParticles() {
+    const container = document.getElementById('particleContainer');
+    const particleCount = 50;
+
+    for (let i = 0; i < particleCount; i++) {
+        createParticle(container);
+    }
+}
+
+function createParticle(container) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    
+    // Randomize particle properties
+    const size = Math.random() * 3 + 1;
+    const posX = Math.random() * 100;
+    const delay = Math.random() * 5;
+    const duration = Math.random() * 3 + 2;
+    
+    particle.style.cssText = `
+        width: ${size}px;
+        height: ${size}px;
+        left: ${posX}%;
+        animation-delay: ${delay}s;
+        animation-duration: ${duration}s;
+    `;
+    
+    container.appendChild(particle);
+    
+    // Remove particle after animation and create a new one
+    particle.addEventListener('animationend', () => {
+        particle.remove();
+        createParticle(container);
+    });
+}
+
+function playMenuSound() {
+    const menuSound = new Audio('../assests/audio/menu/menu_select.mp3');
+    menuSound.volume = 0.5;
+    menuSound.play().catch(e => console.warn('Menu sound play failed:', e));
+}
+
+function startLocalPvP() {
+    console.log('Starting Local PvP...');
+    
+    // Play selection sound
+    const selectSound = new Audio('../assests/audio/menu/menu_select.mp3');
+    selectSound.volume = 0.5;
+    selectSound.play().catch(e => console.warn('Sound play failed:', e));
+
+    // Fade out menu overlay
+    const menuOverlay = document.getElementById('gameMenuOverlay');
+    if (menuOverlay) {
+        menuOverlay.classList.add('fade-out');
+        
+        setTimeout(() => {
+            // Remove menu overlay
+            menuOverlay.remove();
+            
+            // Show character selection screen
+            const charSelect = document.getElementById('charSelect');
+            if (charSelect) {
+                charSelect.style.display = 'flex';
+                // Initialize character selection
+                initializeCharacterSelection();
+            } else {
+                console.error('Character selection screen not found');
+            }
+        }, 500);
+    }
+}
+
+function showAudioSettings() {
+    const settingsOverlay = document.createElement('div');
+    settingsOverlay.className = 'settings-overlay';
+    
+    const settingsContainer = document.createElement('div');
+    settingsContainer.className = 'settings-container';
+    
+    const title = document.createElement('h2');
+    title.textContent = 'Audio Settings';
+    settingsContainer.appendChild(title);
+    
+    // Audio settings
+    const audioSettings = [
+        { name: 'Master Volume', id: 'masterVolume' },
+        { name: 'Music Volume', id: 'musicVolume' },
+        { name: 'SFX Volume', id: 'sfxVolume' },
+        { name: 'Voice Volume', id: 'voiceVolume' }
+    ];
+    
+    audioSettings.forEach(setting => {
+        const settingDiv = document.createElement('div');
+        settingDiv.className = 'setting-item';
+        
+        const label = document.createElement('label');
+        label.textContent = setting.name;
+        
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0';
+        slider.max = '100';
+        slider.value = '100';
+        slider.className = 'volume-slider';
+        slider.id = setting.id;
+        
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = '100%';
+        
+        slider.addEventListener('input', (e) => {
+            valueDisplay.textContent = `${e.target.value}%`;
+            // Here you would also update the actual volume
+        });
+        
+        settingDiv.appendChild(label);
+        settingDiv.appendChild(slider);
+        settingDiv.appendChild(valueDisplay);
+        settingsContainer.appendChild(settingDiv);
+    });
+    
+    // Back button
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.textContent = 'Back';
+    backButton.onclick = () => {
+        settingsOverlay.classList.add('fade-out');
+        setTimeout(() => settingsOverlay.remove(), 500);
+    };
+    
+    settingsContainer.appendChild(backButton);
+    settingsOverlay.appendChild(settingsContainer);
+    document.body.appendChild(settingsOverlay);
+}
+
+function showCredits() {
+    const creditsOverlay = document.createElement('div');
+    creditsOverlay.className = 'credits-overlay';
+    
+    const creditsContent = document.createElement('div');
+    creditsContent.className = 'credits-content';
+    
+    // Credits content
+    const credits = `
+        <h2>VORTEX COMBAT</h2>
+        <div class="credits-section">
+            <h3>Game Development</h3>
+            <p>Shalin Bhattarai</p>
+            <p>Ashim Upadhaya</p>
+        </div>
+        
+        <div class="credits-section">
+            <h3>Art & Animation</h3>
+            <p>Character Design Team</p>
+            <p>Background Artists</p>
+            <p>UI/UX Designers</p>
+        </div>
+        
+        <div class="credits-section">
+            <h3>Sound Design</h3>
+            <p>Music Composition</p>
+            <p>Sound Effects</p>
+            <p>Voice Acting</p>
+        </div>
+        
+        <div class="credits-section">
+            <h3>Special Thanks</h3>
+            <p>Our Amazing Testers</p>
+            <p>The Fighting Game Community</p>
+            <p>And You, The Player!</p>
+        </div>
+    `;
+    
+    creditsContent.innerHTML = credits;
+    
+    // Back button
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.textContent = 'Back';
+    backButton.onclick = () => {
+        creditsOverlay.classList.add('fade-out');
+        setTimeout(() => creditsOverlay.remove(), 500);
+    };
+    
+    creditsContent.appendChild(backButton);
+    creditsOverlay.appendChild(creditsContent);
+    document.body.appendChild(creditsOverlay);
+    
+    // Start the credits scroll animation
+    setTimeout(() => {
+        creditsContent.style.transform = `translateY(-${creditsContent.scrollHeight}px)`;
+    }, 1000);
+}
+
+function showAbout() {
+    const aboutOverlay = document.createElement('div');
+    aboutOverlay.className = 'about-overlay';
+    
+    const aboutContainer = document.createElement('div');
+    aboutContainer.className = 'about-container';
+    
+    const aboutContent = `
+        <h2>About VORTEX COMBAT</h2>
+        <div class="about-section">
+            <p class="game-description">
+                VORTEX COMBAT is an intense fighting game that combines traditional martial arts with supernatural shadow abilities. 
+                In this unique combat experience, fighters can manipulate shadows to deceive and outmaneuver their opponents, 
+                creating a dynamic and strategic battlefield.
+            </p>
+            
+            <div class="feature-list">
+                <h3>Key Features:</h3>
+                <ul>
+                    <li>Unique shadow manipulation mechanics</li>
+                    <li>Dynamic combat system</li>
+                    <li>Multiple fighting styles</li>
+                    <li>Stunning visual effects</li>
+                    <li>Strategic depth in every match</li>
+                </ul>
+            </div>
+            
+            <div class="creators-section">
+                <h3>Created By:</h3>
+                <p class="creator">Shalin Bhattarai</p>
+                <p class="creator">Ashim Upadhaya</p>
+            </div>
+            
+            <p class="version">Version 1.0</p>
+        </div>
+    `;
+    
+    aboutContainer.innerHTML = aboutContent;
+    
+    // Back button
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.textContent = 'Back';
+    backButton.onclick = () => {
+        aboutOverlay.classList.add('fade-out');
+        setTimeout(() => aboutOverlay.remove(), 500);
+    };
+    
+    aboutContainer.appendChild(backButton);
+    aboutOverlay.appendChild(aboutContainer);
+    document.body.appendChild(aboutOverlay);
+}
+
+// Modify the back button functionality in player selection
+document.querySelector('.back-button')?.addEventListener('click', () => {
+    // Play click sound
+    const clickSound = new Audio('../assests/audio/menu/menu_select.mp3');
+    clickSound.volume = 0.5;
+    clickSound.play().catch(e => console.warn('Sound play failed:', e));
+
+    // Hide character selection
+    const charSelect = document.getElementById('charSelect');
+    if (charSelect) {
+        charSelect.style.display = 'none';
+    }
+
+    // Show menu overlay
+    createGameMenu();
+});
+
+function createSplashScreen() {
+    const splashOverlay = document.createElement('div');
+    splashOverlay.className = 'splash-overlay';
+    
+    // Set the background image without rotation, keeping darkening and vignette
+    splashOverlay.style.cssText = `
+        background-image: 
+            linear-gradient(
+                rgba(0, 0, 0, 0.6), 
+                rgba(0, 0, 0, 0.6)
+            ),
+            radial-gradient(
+                circle at center,
+                transparent 0%,
+                rgba(0, 0, 0, 0.9) 100%
+            ),
+            url('../assests/maps/bgMain.gif');
+        background-size: 200% 200%;
+        background-position: center;
+        width: 100%;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+    `;
+    
+    const logoContainer = document.createElement('div');
+    logoContainer.className = 'logo-container';
+    
+    const title = document.createElement('h1');
+    title.className = 'splash-title';
+    title.innerHTML = 'VORTEX <span class="shift-text">COMBAT</span>';
+    // Add text shadow for better readability
+    title.style.textShadow = '0 0 20px rgba(0, 0, 0, 0.8)';
+    
+    const pressEnter = document.createElement('div');
+    pressEnter.className = 'press-enter';
+    pressEnter.textContent = 'PRESS ENTER TO START';
+    // Add text shadow for better readability
+    pressEnter.style.textShadow = '0 0 10px rgba(0, 0, 0, 0.8)';
+    
+    logoContainer.appendChild(title);
+    logoContainer.appendChild(pressEnter);
+    splashOverlay.appendChild(logoContainer);
+    
+    const particleContainer = document.createElement('div');
+    particleContainer.id = 'splashParticleContainer';
+    splashOverlay.appendChild(particleContainer);
+    
+    document.body.appendChild(splashOverlay);
+    createSplashParticles();
+}
+
+function createSplashParticles() {
+    const container = document.getElementById('splashParticleContainer');
+    const particleCount = 50;
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'splash-particle';
+        
+        // Random particle properties
+        const size = Math.random() * 4 + 2;
+        const startPositionX = Math.random() * 100;
+        const duration = Math.random() * 3 + 2;
+        const delay = Math.random() * 2;
+
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${startPositionX}%`;
+        particle.style.animationDuration = `${duration}s`;
+        particle.style.animationDelay = `${delay}s`;
+
+        container.appendChild(particle);
+    }
+}
+
+function initializeCharacterSelection() {
+    console.log('Initializing character selection...');
     
     // Set up fight button
     const startFight = document.getElementById('startFight');
     if (startFight) {
         startFight.style.display = 'none';
         
-        // We're now handling the click in the HTML onclick attribute
-        // This event listener is kept for backward compatibility
         startFight.addEventListener('click', function() {
             // Play click sound
             if (window.SoundManager) {
@@ -357,8 +739,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     // Hide all previews initially
-    document.getElementById('player1Preview').classList.remove('visible', 'selected-character');
-    document.getElementById('player2Preview').classList.remove('visible', 'selected-character');
+    document.getElementById('player1Preview')?.classList.remove('visible', 'selected-character');
+    document.getElementById('player2Preview')?.classList.remove('visible', 'selected-character');
     
     // Initialize VS text opacity
     const vsText = document.querySelector('.vs-text');
@@ -392,7 +774,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize keyboard navigation
     setupKeyboardNavigation();
     updateSelectionDisplay();
-});
+}
 
 function setupKeyboardNavigation() {
     document.addEventListener('keydown', (event) => {
@@ -486,3 +868,80 @@ function checkIfBothPlayersSelected() {
         }, 1000);
     }
 }
+
+// Add fullscreen maintenance for document
+document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+        sessionStorage.setItem('gameInFullscreen', 'true');
+    }
+});
+
+// Function to handle splash screen transition
+function handleSplashTransition() {
+    const splashOverlay = document.querySelector('.splash-overlay');
+    if (splashOverlay) {
+        // Try to play music on transition
+        SoundManager.playBackgroundMusic('characterSelect');
+        
+        // Add fade out animation
+        splashOverlay.classList.add('fade-out');
+
+        // Remove splash overlay and show menu after animation
+        setTimeout(() => {
+            splashOverlay.remove();
+            createGameMenu();
+        }, 1000);
+    }
+}
+
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Add click listener for music
+    document.body.addEventListener('click', () => {
+        SoundManager.playBackgroundMusic('characterSelect');
+    }, { once: true });
+
+    // Add keydown listener for music
+    document.body.addEventListener('keydown', () => {
+        SoundManager.playBackgroundMusic('characterSelect');
+    }, { once: true });
+
+    // Ensure we're in fullscreen mode if we were before
+    if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn('Auto-fullscreen failed:', err);
+        });
+    }
+
+    // Hide character selection initially
+    const charSelect = document.getElementById('charSelect');
+    if (charSelect) {
+        charSelect.style.display = 'none';
+    }
+
+    // Check if we should skip the splash screen
+    const skipSplash = sessionStorage.getItem('skipSplash') === 'true';
+    // Clear the skip flag after checking it
+    sessionStorage.removeItem('skipSplash');
+    
+    // Check if we're coming from index.html
+    const comingFromIndex = document.referrer.endsWith('index.html');
+    
+    if (comingFromIndex && !skipSplash) {
+        // Start with splash screen
+        createSplashScreen();
+    } else {
+        // Skip splash and show menu directly
+        createGameMenu();
+    }
+
+    // Add Enter key event listener
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            const splashOverlay = document.querySelector('.splash-overlay');
+            if (splashOverlay) {
+                handleSplashTransition();
+            }
+        }
+    });
+});

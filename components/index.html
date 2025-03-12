@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX COMBAT - Disclaimer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        }
+
+        .disclaimer-container {
+            max-width: 800px;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+        }
+
+        .warning-text {
+            color: #ff3366;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .disclaimer-text {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .fullscreen-request {
+            font-size: 1.5rem;
+            color: #ff3366;
+            margin-bottom: 2rem;
+            animation: blink 1.5s infinite;
+        }
+
+        .continue-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #ff3366, #ff0044);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+            animation-delay: 2s;
+        }
+
+        .continue-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 51, 102, 0.8); }
+            50% { text-shadow: 0 0 20px rgba(255, 51, 102, 1), 0 0 30px rgba(255, 51, 102, 0.8); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .fullscreen-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .fullscreen-message.visible {
+            display: block;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .fullscreen-button {
+            background: linear-gradient(45deg, #ff3366, #ff0044);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .fullscreen-button:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="disclaimer-container">
+        <h1 class="warning-text">WARNING</h1>
+        <p class="disclaimer-text">
+            You are about to enter the world of VORTEX COMBAT, where ancient martial arts meet supernatural powers. 
+            This game contains intense combat sequences, dramatic visual effects, and heart-pounding action that may 
+            overwhelm the unprepared. By proceeding, you acknowledge that you are ready to face the challenges that await.
+        </p>
+        <button class="continue-btn" onclick="requestFullscreenAndProceed()">Enter the Arena</button>
+    </div>
+
+    <div class="fullscreen-message" id="fullscreenMessage">
+        <h2>For the best experience</h2>
+        <p>VORTEX COMBAT is designed to be played in fullscreen mode.</p>
+        <button class="fullscreen-button" onclick="enterFullscreen()">Enter Fullscreen</button>
+    </div>
+
+    <script>
+        function enterFullscreen() {
+            document.documentElement.requestFullscreen().then(() => {
+                // Store in session storage that we've entered fullscreen
+                sessionStorage.setItem('gameInFullscreen', 'true');
+                // Hide the message
+                document.getElementById('fullscreenMessage').classList.remove('visible');
+                // Proceed to the game
+                proceedToGame();
+            }).catch(err => {
+                console.warn('Fullscreen request failed:', err);
+                // If fullscreen fails, still proceed but show F11 message
+                alert('Please press F11 to enter fullscreen mode');
+                proceedToGame();
+            });
+        }
+
+        function requestFullscreenAndProceed() {
+            // Check if we're already in fullscreen or have been in fullscreen before
+            if (document.fullscreenElement || sessionStorage.getItem('gameInFullscreen')) {
+                proceedToGame();
+            } else {
+                // Show fullscreen request message
+                document.getElementById('fullscreenMessage').classList.add('visible');
+            }
+        }
+
+        function proceedToGame() {
+            const sound = new Audio('../assests/audio/menu/menu_select.mp3');
+            sound.volume = 0.7;
+            sound.play().catch(e => console.warn('Sound play failed:', e));
+            document.body.style.animation = 'fadeOut 1s forwards';
+            setTimeout(() => {
+                window.location.href = 'playerselection.html';
+            }, 1000);
+        }
+
+        // Check fullscreen state changes
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                sessionStorage.setItem('gameInFullscreen', 'true');
+            }
+        });
+
+        // If we're coming back to this page and we've been in fullscreen before,
+        // automatically enter fullscreen
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('Auto-fullscreen failed:', err);
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -10,13 +10,43 @@
     <script src="../js/sound.js"></script>
 </head>
 <body>
-    <div id="fightScreen">
+    <!-- Press Any Key Overlay -->
+    <div class="press-key-overlay" id="pressKeyOverlay">
+        <div class="press-key-text">PRESS ANY KEY TO BEGIN</div>
+    </div>
+
+    <!-- Character Introduction Elements -->
+    <div class="character-intro intro-left" id="player1Intro">
+        <div class="fighter-image"></div>
+        <div class="character-name"></div>
+    </div>
+    <div class="character-intro intro-right" id="player2Intro">
+        <div class="fighter-image"></div>
+        <div class="character-name"></div>
+    </div>
+
+    <!-- Round Announcement -->
+    <div class="round-announcement" id="roundAnnouncement"></div>
+
+    <!-- Announcer Audio Elements -->
+    <audio id="announcerInit" src="../assests/audio/announcer/announcer_initialize.mp3" preload="auto" muted></audio>
+    <audio id="leftCurseor" src="../assests/audio/announcer/Left_Curse-or.mp3" preload="auto" muted></audio>
+    <audio id="leftReign" src="../assests/audio/announcer/Left_Reign.mp3" preload="auto" muted></audio>
+    <audio id="rightCurseor" src="../assests/audio/announcer/Right_Curse-or.mp3" preload="auto" muted></audio>
+    <audio id="rightReign" src="../assests/audio/announcer/Right_Reign.mp3" preload="auto" muted></audio>
+    <audio id="fightBegin" src="../assests/audio/announcer/fight_begin.mp3" preload="auto" muted></audio>
+    <audio id="introCheer" src="../assests/audio/ambience/cheer2_charecters.mp3" preload="auto"></audio>
+
+    <!-- Background Audio Elements -->
+    <audio id="ambienceAudio" src="../assests/audio/ambience/cheer1.mp3" preload="auto" loop></audio>
+    <audio id="mapMusic" preload="auto" loop></audio>
+
+    <div id="fightScreen" class="intro-phase">
         <div id="fightHeader">
-            <div class="round-info">ROUND 1</div>
             <div class="timer">60</div>
         </div>
         
-        <!-- New health bars at the top -->
+        <!-- Health bars at the top -->
         <div class="health-bars">
             <div id="player1-health" class="player-health">
                 <div class="player-health-name">PLAYER 1</div>
@@ -46,7 +76,6 @@
             </div>
             
             <div id="fightStatus">
-                <div id="fightText">FIGHT!</div>
                 <div id="vsText">VS</div>
             </div>
             
@@ -65,6 +94,8 @@
                     <p>S - Guard</p>
                     <p>F - Punch</p>
                     <p>G - Kick</p>
+                    <p>Q - Dash</p>
+                    <p>E - Special Move</p>
                 </div>
                 
                 <div class="player2-controls">
@@ -75,17 +106,27 @@
                     <p>↓ - Guard</p>
                     <p>K - Punch</p>
                     <p>L - Kick</p>
+                    <p>O - Dash</p>
+                    <p>P - Special Move</p>
                 </div>
             </div>
             
             <div class="button-container">
+                <button id="settingsButton" class="settings-button"
+                        onmousedown="SoundManager.playClickSound(); openSettings();"
+                        onmouseover="SoundManager.playHoverSound()">
+                    SETTINGS
+                </button>
                 <button id="backButton" class="back-button" 
                         onmousedown="SoundManager.playClickSound(); setTimeout(function() { goToMapSelection(); }, 300);" 
-                        onmouseover="SoundManager.playHoverSound()">BACK</button>
-                
+                        onmouseover="SoundManager.playHoverSound()">
+                    BACK
+                </button>
                 <button id="changeCharactersButton" 
                         onmousedown="SoundManager.playClickSound(); setTimeout(function() { changeCharacters(); }, 300);" 
-                        onmouseover="SoundManager.playHoverSound()">CHANGE FIGHTERS</button>
+                        onmouseover="SoundManager.playHoverSound()">
+                    CHANGE FIGHTERS
+                </button>
             </div>
         </div>
     </div>
@@ -94,6 +135,205 @@
     <audio id="hitSound" src="../assets/sounds/hit.mp3" preload="auto"></audio>
     <audio id="victorySound" src="../assets/sounds/victory.mp3" preload="auto"></audio>
     
+    <!-- Settings Overlay -->
+    <div id="settingsOverlay" class="settings-overlay" style="display: none;">
+        <div class="settings-content">
+            <h2>GAME PAUSED</h2>
+            <div class="settings-buttons">
+                <button id="continueButton" onclick="closeSettings()">CONTINUE</button>
+                <button id="audioSettingsButton" onclick="openAudioSettings()">AUDIO SETTINGS</button>
+                <button id="restartButton" onclick="restartGame()">RESTART</button>
+                <button id="settingsChangeMapButton" onclick="goToMapSelection()">CHANGE MAP</button>
+                <button id="settingsChangeFightersButton" onclick="changeCharacters()">CHANGE FIGHTERS</button>
+                <button id="settingsMainMenuButton" onclick="goToMainMenu()">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Settings Overlay -->
+    <div id="audioSettingsOverlay" class="settings-overlay" style="display: none;">
+        <div class="settings-content audio-settings">
+            <h2>AUDIO SETTINGS</h2>
+            <div class="volume-controls">
+                <div class="volume-control">
+                    <label for="bgmVolume">Background Music</label>
+                    <input type="range" id="bgmVolume" min="0" max="100" value="40" 
+                           oninput="updateVolume('bgm', this.value)">
+                    <span class="volume-value">40%</span>
+                </div>
+                <div class="volume-control">
+                    <label for="sfxVolume">Sound Effects</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="60" 
+                           oninput="updateVolume('sfx', this.value)">
+                    <span class="volume-value">60%</span>
+                </div>
+                <div class="volume-control">
+                    <label for="announcerVolume">Announcer</label>
+                    <input type="range" id="announcerVolume" min="0" max="100" value="70" 
+                           oninput="updateVolume('announcer', this.value)">
+                    <span class="volume-value">70%</span>
+                </div>
+                <div class="volume-control">
+                    <label for="playerSfxVolume">Player Effects</label>
+                    <input type="range" id="playerSfxVolume" min="0" max="100" value="60" 
+                           oninput="updateVolume('playerSfx', this.value)">
+                    <span class="volume-value">60%</span>
+                </div>
+            </div>
+            <button id="backToSettingsButton" onclick="closeAudioSettings()" class="back-to-settings">
+                BACK
+            </button>
+        </div>
+    </div>
+
+    <style>
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .settings-content {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #ff4444;
+            text-align: center;
+        }
+
+        .settings-content h2 {
+            color: #fff;
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #fff,
+                         0 0 30px #ff0000,
+                         0 0 40px #ff0000;
+        }
+
+        .settings-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .settings-buttons button {
+            padding: 15px 30px;
+            font-size: 24px;
+            background: linear-gradient(to bottom, #ff3333, #cc0000);
+            color: white;
+            border: 2px solid #ff4444;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 300px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-buttons button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .settings-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: linear-gradient(to bottom, #ff3333, #cc0000);
+            color: white;
+            border: 2px solid #ff4444;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .settings-button:hover {
+            transform: scale(1.05);
+        }
+
+        .audio-settings {
+            min-width: 500px;
+        }
+
+        .volume-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+        }
+
+        .volume-control label {
+            min-width: 150px;
+            text-align: right;
+            font-size: 20px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .volume-control input[type="range"] {
+            flex-grow: 1;
+            height: 10px;
+            border-radius: 5px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff4444;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .volume-control input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #ff6666;
+        }
+
+        .volume-control .volume-value {
+            min-width: 50px;
+            text-align: left;
+            font-size: 18px;
+        }
+
+        .back-to-settings {
+            padding: 15px 30px;
+            font-size: 24px;
+            background: linear-gradient(to bottom, #ff3333, #cc0000);
+            color: white;
+            border: 2px solid #ff4444;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .back-to-settings:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+
     <script>
         // Initialize audio when the page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -101,10 +341,32 @@
             function initAudio() {
                 console.log('Initializing audio for fight screen...');
                 
-                // Try to play the background music
+                // Initialize ambience and map music
+                const ambienceAudio = document.getElementById('ambienceAudio');
+                const mapMusic = document.getElementById('mapMusic');
+                
+                // Set volumes
+                ambienceAudio.volume = 0.3;  // Crowd cheering at 30% volume
+                mapMusic.volume = 0.4;       // Background music at 40% volume
+                
+                // Select random map music track and prepare it (but don't play yet)
+                const mapMusicTracks = [
+                    '../assests/audio/map_music/map_music_1.mp3',
+                    '../assests/audio/map_music/map_music_2.mp3',
+                    '../assests/audio/map_music/map_music_3.mp3',
+                    '../assests/audio/map_music/map_music_4.mp3'
+                ];
+                const randomTrack = mapMusicTracks[Math.floor(Math.random() * mapMusicTracks.length)];
+                mapMusic.src = randomTrack;
+                
+                // Only start the crowd ambience
+                ambienceAudio.play().catch(error => {
+                    console.error('Error playing ambience:', error);
+                });
+                
+                // If background music was already initialized by SoundManager, stop it
                 if (window.SoundManager) {
-                    window.SoundManager.playFightMusic();
-                    console.log('Fight music started');
+                    window.SoundManager.stopBackgroundMusic();
                 }
             }
             
@@ -337,9 +599,138 @@ Map: ${selectedMap || 'Not set'}`);
                 window.location.href = 'maps.html';
             }
         }
+
+        function openSettings() {
+            // Pause the game
+            if (window.gameState) {
+                window.gameState.roundPaused = true;
+            }
+            
+            // Stop background music
+            const mapMusic = document.getElementById('mapMusic');
+            if (mapMusic) {
+                mapMusic.pause();
+            }
+            
+            // Show settings overlay
+            document.getElementById('settingsOverlay').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            // Hide settings overlay
+            document.getElementById('settingsOverlay').style.display = 'none';
+            
+            // Resume background music
+            const mapMusic = document.getElementById('mapMusic');
+            if (mapMusic) {
+                mapMusic.play();
+            }
+            
+            // Unpause the game
+            if (window.gameState) {
+                window.gameState.roundPaused = false;
+            }
+        }
+
+        function restartGame() {
+            sessionStorage.setItem('isReplay', 'true');
+            location.reload();
+        }
+
+        function goToMainMenu() {
+            if (window.SoundManager) {
+                window.SoundManager.playClickSound();
+            }
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 300);
+        }
+
+        function openAudioSettings() {
+            document.getElementById('settingsOverlay').style.display = 'none';
+            document.getElementById('audioSettingsOverlay').style.display = 'flex';
+            
+            // Load saved volumes
+            loadSavedVolumes();
+        }
+
+        function closeAudioSettings() {
+            document.getElementById('audioSettingsOverlay').style.display = 'none';
+            document.getElementById('settingsOverlay').style.display = 'flex';
+            
+            // Save volumes
+            saveVolumes();
+        }
+
+        function updateVolume(type, value) {
+            // Update the display value
+            const slider = document.getElementById(`${type}Volume`);
+            const displayValue = slider.nextElementSibling;
+            displayValue.textContent = `${value}%`;
+            
+            const volume = value / 100;
+
+            // Update the actual volume based on type
+            switch(type) {
+                case 'bgm':
+                    const mapMusic = document.getElementById('mapMusic');
+                    if (mapMusic) mapMusic.volume = volume;
+                    break;
+                case 'sfx':
+                    // Update SoundManager volume if it exists
+                    if (window.SoundManager) {
+                        window.SoundManager.setVolume(volume);
+                    }
+                    break;
+                case 'announcer':
+                    // Update announcer audio elements
+                    if (window.announcer) {
+                        Object.values(window.announcer.audioElements).forEach(audio => {
+                            if (audio && audio !== window.announcer.audioElements.introCheer) {
+                                audio.volume = volume;
+                            }
+                        });
+                    }
+                    break;
+                case 'playerSfx':
+                    // Store the volume for player sound effects
+                    window.playerSfxVolume = volume;
+                    break;
+            }
+        }
+
+        function saveVolumes() {
+            const volumes = {
+                bgm: document.getElementById('bgmVolume').value,
+                sfx: document.getElementById('sfxVolume').value,
+                announcer: document.getElementById('announcerVolume').value,
+                playerSfx: document.getElementById('playerSfxVolume').value
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(volumes));
+        }
+
+        function loadSavedVolumes() {
+            const savedVolumes = localStorage.getItem('audioSettings');
+            if (savedVolumes) {
+                const volumes = JSON.parse(savedVolumes);
+                Object.entries(volumes).forEach(([type, value]) => {
+                    const slider = document.getElementById(`${type}Volume`);
+                    if (slider) {
+                        slider.value = value;
+                        updateVolume(type, value);
+                    }
+                });
+            }
+        }
+
+        // Load saved volumes when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedVolumes();
+        });
     </script>
     
-    <!-- Use the single fight.js file -->
+    <!-- Add announcer.js before fight.js -->
+    <script src="../js/announcer.js"></script>
     <script src="../js/fight.js"></script>
 </body>
 </html> 

@@ -1,6 +1,39 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const isReplay = sessionStorage.getItem('isReplay') === 'true';
+    
+    if (isReplay) {
+        // Clear the replay flag
+        sessionStorage.removeItem('isReplay');
+        
+        // Hide the press key overlay
+        const pressKeyOverlay = document.getElementById('pressKeyOverlay');
+        if (pressKeyOverlay) {
+            pressKeyOverlay.style.display = 'none';
+        }
+        
+        // Hide character intros
+        const player1Intro = document.getElementById('player1Intro');
+        const player2Intro = document.getElementById('player2Intro');
+        if (player1Intro) player1Intro.style.display = 'none';
+        if (player2Intro) player2Intro.style.display = 'none';
+        
+        // Remove intro phase class
+        const fightScreen = document.getElementById('fightScreen');
+        if (fightScreen) {
+            fightScreen.classList.remove('intro-phase');
+        }
+        
+        // Play "Let the battle begin" and start the match
+        const announcer = window.announcer;
+        if (announcer) {
+            announcer.skipToFight();
+        }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Get selected map and players from session storage
-    const selectedMap = sessionStorage.getItem('selectedMap');
+  const selectedMap = sessionStorage.getItem('selectedMap');
     const player1Character = sessionStorage.getItem('player1Character');
     const player2Character = sessionStorage.getItem('player2Character');
     
@@ -51,11 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up fighters with the correct character selections
     setupFighters(finalPlayer1, finalPlayer2);
   
-    // Set up game timer
+  // Set up game timer
     setupGameTimer();
-    
-    // Set up fight animation
-    animateFightText();
     
     // Initialize the game engine
     initGameEngine(finalPlayer1, finalPlayer2);
@@ -87,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Game state
-let gameState = {
+window.gameState = {
     player1: {
         health: 100,
         stamina: 100, // Add stamina property
@@ -160,7 +190,14 @@ let gameState = {
     gameOver: false,
     winner: null,
     roundTime: 60,
-    animationFrame: null
+    animationFrame: null,
+    roundStarted: false,
+    roundPaused: true,
+    currentRound: 1,
+    roundWins: {
+    player1: 0,
+    player2: 0
+    }
 };
 
 // Basic fighter styles
@@ -211,7 +248,8 @@ const FIGHTER_STYLES = `
 
     .hit-outline {
         position: absolute;
-        top: 0;
+        top: auto;
+        bottom: 0;
         left: 0;
         width: 100%;
         height: 100%;
@@ -221,6 +259,7 @@ const FIGHTER_STYLES = `
         background-size: contain !important;
         background-position: bottom !important;
         background-repeat: no-repeat !important;
+        transform-origin: bottom center;
     }
 
     .screen-shake {
@@ -281,74 +320,70 @@ function initGameEngine(player1Character, player2Character) {
     // Set up game arena
     const fightArena = document.getElementById('fightArena');
     if (fightArena) {
-        gameState.arena.width = fightArena.offsetWidth;
-        gameState.arena.boundaries.left = gameState.arena.width * 0.1;
-        gameState.arena.boundaries.right = gameState.arena.width * 0.9;
-        console.log('Arena width:', gameState.arena.width);
-        console.log('Arena boundaries:', gameState.arena.boundaries);
+        window.gameState.arena.width = fightArena.offsetWidth;
+        window.gameState.arena.boundaries.left = window.gameState.arena.width * 0.1;
+        window.gameState.arena.boundaries.right = window.gameState.arena.width * 0.9;
+        console.log('Arena width:', window.gameState.arena.width);
+        console.log('Arena boundaries:', window.gameState.arena.boundaries);
     }
     
     // Set up player elements
-    gameState.player1.element = document.getElementById('player1');
-    gameState.player2.element = document.getElementById('player2');
-    gameState.player1.healthBar = document.querySelector('#player1-health .health-bar');
-    gameState.player2.healthBar = document.querySelector('#player2-health .health-bar');
+    window.gameState.player1.element = document.getElementById('player1');
+    window.gameState.player2.element = document.getElementById('player2');
+    window.gameState.player1.healthBar = document.querySelector('#player1-health .health-bar');
+    window.gameState.player2.healthBar = document.querySelector('#player2-health .health-bar');
     
     // Set up main stamina bars
-    gameState.player1.mainStaminaBar = document.querySelector('#player1-health .main-stamina-bar');
-    gameState.player2.mainStaminaBar = document.querySelector('#player2-health .main-stamina-bar');
+    window.gameState.player1.mainStaminaBar = document.querySelector('#player1-health .main-stamina-bar');
+    window.gameState.player2.mainStaminaBar = document.querySelector('#player2-health .main-stamina-bar');
     
     // Set character data
-    gameState.player1.character = player1Character;
-    gameState.player2.character = player2Character;
+    window.gameState.player1.character = player1Character;
+    window.gameState.player2.character = player2Character;
     
     // Set initial positions
-    gameState.player1.position = gameState.arena.width * 0.3;
-    gameState.player2.position = gameState.arena.width * 0.7;
+    window.gameState.player1.position = window.gameState.arena.width * 0.3;
+    window.gameState.player2.position = window.gameState.arena.width * 0.7;
     
     // Apply initial positions to DOM
-    if (gameState.player1.element) {
-        gameState.player1.element.style.left = gameState.player1.position + 'px';
+    if (window.gameState.player1.element) {
+        window.gameState.player1.element.style.left = window.gameState.player1.position + 'px';
     }
-    if (gameState.player2.element) {
-        gameState.player2.element.style.left = gameState.player2.position + 'px';
+    if (window.gameState.player2.element) {
+        window.gameState.player2.element.style.left = window.gameState.player2.position + 'px';
     }
     
     console.log('Initial positions set:', 
-                gameState.player1.position, 
-                gameState.player2.position);
+                window.gameState.player1.position, 
+                window.gameState.player2.position);
     
     // Set up keyboard controls
     setupControls();
     
+    // Add stamina bars
+    if (window.gameState.player1.element) {
+        const player1StaminaBar = createStaminaBar(window.gameState.player1);
+        window.gameState.player1.element.appendChild(player1StaminaBar);
+        window.gameState.player1.staminaBar = player1StaminaBar;
+    }
+    
+    if (window.gameState.player2.element) {
+        const player2StaminaBar = createStaminaBar(window.gameState.player2);
+        window.gameState.player2.element.appendChild(player2StaminaBar);
+        window.gameState.player2.staminaBar = player2StaminaBar;
+    }
+
+    // Initialize game state for round system
+    window.gameState.roundStarted = false;
+    window.gameState.roundPaused = true;
+    window.gameState.currentRound = 1;
+    window.gameState.roundWins = {
+        player1: 0,
+        player2: 0
+    };
+
     // Start game loop
     gameLoop();
-    
-    // Show "FIGHT!" text and start the game
-    setTimeout(() => {
-        const fightText = document.getElementById('fightText');
-        if (fightText) {
-            fightText.style.transform = 'scale(2)';
-            fightText.style.opacity = '0';
-            
-            setTimeout(() => {
-                fightText.style.display = 'none';
-            }, 500);
-        }
-    }, 2000);
-    
-    // Add stamina bars
-    if (gameState.player1.element) {
-        const player1StaminaBar = createStaminaBar(gameState.player1);
-        gameState.player1.element.appendChild(player1StaminaBar);
-        gameState.player1.staminaBar = player1StaminaBar;
-    }
-    
-    if (gameState.player2.element) {
-        const player2StaminaBar = createStaminaBar(gameState.player2);
-        gameState.player2.element.appendChild(player2StaminaBar);
-        gameState.player2.staminaBar = player2StaminaBar;
-    }
 }
 
 function setupControls() {
@@ -373,42 +408,42 @@ function handleKeyDown(e) {
     // Player 1 controls (WASD + F,G)
     switch(e.key.toLowerCase()) {
         case 'w':
-            if (!gameState.keys.player1.jump) {  // Only trigger if not already jumping
-                gameState.keys.player1.jump = true;
+            if (!window.gameState.keys.player1.jump) {  // Only trigger if not already jumping
+                window.gameState.keys.player1.jump = true;
             }
             break;
         case 'a':
-            gameState.keys.player1.left = true;
+            window.gameState.keys.player1.left = true;
             // Check for dash (Shift + A)
             if (e.shiftKey) {
-                performDash(gameState.player1, -1);
+                performDash(window.gameState.player1, -1);
             }
             break;
         case 'd':
-            gameState.keys.player1.right = true;
+            window.gameState.keys.player1.right = true;
             // Check for dash (Shift + D)
             if (e.shiftKey) {
-                performDash(gameState.player1, 1);
+                performDash(window.gameState.player1, 1);
             }
             break;
         case 's':
-            gameState.keys.player1.guard = true;
-            guardPlayer(gameState.player1);  // Start guarding immediately
+            window.gameState.keys.player1.guard = true;
+            guardPlayer(window.gameState.player1);  // Start guarding immediately
             break;
         case 'f':
             // Check if enough time has passed since last attack and player is not jumping or dodging
-            if (!gameState.keys.player1.punch && !gameState.player1.isAttacking && 
-                !gameState.player1.isJumping && !gameState.player1.isDodging) {
-                gameState.keys.player1.punch = true;
-                attackPlayer(gameState.player1, 'punch');
+            if (!window.gameState.keys.player1.punch && !window.gameState.player1.isAttacking && 
+                !window.gameState.player1.isJumping && !window.gameState.player1.isDodging) {
+                window.gameState.keys.player1.punch = true;
+                attackPlayer(window.gameState.player1, 'punch');
             }
             break;
         case 'g':
             // Check if enough time has passed since last attack and player is not jumping or dodging
-            if (!gameState.keys.player1.kick && !gameState.player1.isAttacking && 
-                !gameState.player1.isJumping && !gameState.player1.isDodging) {
-                gameState.keys.player1.kick = true;
-                attackPlayer(gameState.player1, 'kick');
+            if (!window.gameState.keys.player1.kick && !window.gameState.player1.isAttacking && 
+                !window.gameState.player1.isJumping && !window.gameState.player1.isDodging) {
+                window.gameState.keys.player1.kick = true;
+                attackPlayer(window.gameState.player1, 'kick');
             }
             break;
     }
@@ -416,42 +451,42 @@ function handleKeyDown(e) {
     // Player 2 controls (Arrow keys + K,L)
     switch(e.key) {
         case 'ArrowUp':
-            if (!gameState.keys.player2.jump) {  // Only trigger if not already jumping
-                gameState.keys.player2.jump = true;
+            if (!window.gameState.keys.player2.jump) {  // Only trigger if not already jumping
+                window.gameState.keys.player2.jump = true;
             }
             break;
         case 'ArrowLeft':
-            gameState.keys.player2.left = true;
+            window.gameState.keys.player2.left = true;
             // Check for dash (Shift + Left Arrow)
             if (e.shiftKey) {
-                performDash(gameState.player2, -1);
+                performDash(window.gameState.player2, -1);
             }
             break;
         case 'ArrowRight':
-            gameState.keys.player2.right = true;
+            window.gameState.keys.player2.right = true;
             // Check for dash (Shift + Right Arrow)
             if (e.shiftKey) {
-                performDash(gameState.player2, 1);
+                performDash(window.gameState.player2, 1);
             }
             break;
         case 'ArrowDown':
-            gameState.keys.player2.guard = true;
-            guardPlayer(gameState.player2);  // Start guarding immediately
+            window.gameState.keys.player2.guard = true;
+            guardPlayer(window.gameState.player2);  // Start guarding immediately
             break;
         case 'k':
             // Check if enough time has passed since last attack and player is not jumping or dodging
-            if (!gameState.keys.player2.punch && !gameState.player2.isAttacking && 
-                !gameState.player2.isJumping && !gameState.player2.isDodging) {
-                gameState.keys.player2.punch = true;
-                attackPlayer(gameState.player2, 'punch');
+            if (!window.gameState.keys.player2.punch && !window.gameState.player2.isAttacking && 
+                !window.gameState.player2.isJumping && !window.gameState.player2.isDodging) {
+                window.gameState.keys.player2.punch = true;
+                attackPlayer(window.gameState.player2, 'punch');
             }
             break;
         case 'l':
             // Check if enough time has passed since last attack and player is not jumping or dodging
-            if (!gameState.keys.player2.kick && !gameState.player2.isAttacking && 
-                !gameState.player2.isJumping && !gameState.player2.isDodging) {
-                gameState.keys.player2.kick = true;
-                attackPlayer(gameState.player2, 'kick');
+            if (!window.gameState.keys.player2.kick && !window.gameState.player2.isAttacking && 
+                !window.gameState.player2.isJumping && !window.gameState.player2.isDodging) {
+                window.gameState.keys.player2.kick = true;
+                attackPlayer(window.gameState.player2, 'kick');
             }
             break;
     }
@@ -461,74 +496,74 @@ function handleKeyUp(e) {
     // Player 1 controls
     switch(e.key.toLowerCase()) {
         case 'w': 
-            gameState.keys.player1.jump = false; 
+            window.gameState.keys.player1.jump = false; 
             break;
         case 'a': 
-            gameState.keys.player1.left = false; 
+            window.gameState.keys.player1.left = false; 
             // Stop movement sound
-            if (gameState.player1.movementSound) {
-                gameState.player1.movementSound.pause();
-                gameState.player1.movementSound = null;
+            if (window.gameState.player1.movementSound) {
+                window.gameState.player1.movementSound.pause();
+                window.gameState.player1.movementSound = null;
             }
             // Reset player 1 image when left key is released
-            resetPlayerIdleImage(gameState.player1);
+            resetPlayerIdleImage(window.gameState.player1);
             break;
         case 'd': 
-            gameState.keys.player1.right = false; 
+            window.gameState.keys.player1.right = false; 
             // Stop movement sound
-            if (gameState.player1.movementSound) {
-                gameState.player1.movementSound.pause();
-                gameState.player1.movementSound = null;
+            if (window.gameState.player1.movementSound) {
+                window.gameState.player1.movementSound.pause();
+                window.gameState.player1.movementSound = null;
             }
             // Reset player 1 image when right key is released
-            resetPlayerIdleImage(gameState.player1);
+            resetPlayerIdleImage(window.gameState.player1);
             break;
         case 's': 
-            gameState.keys.player1.guard = false; 
-            stopGuardPlayer(gameState.player1);
+            window.gameState.keys.player1.guard = false; 
+            stopGuardPlayer(window.gameState.player1);
             break;
         case 'f': 
-            gameState.keys.player1.punch = false; 
+            window.gameState.keys.player1.punch = false; 
             break;
         case 'g': 
-            gameState.keys.player1.kick = false; 
+            window.gameState.keys.player1.kick = false; 
             break;
     }
 
     // Player 2 controls
     switch(e.key) {
         case 'ArrowUp': 
-            gameState.keys.player2.jump = false; 
+            window.gameState.keys.player2.jump = false; 
             break;
         case 'ArrowLeft': 
-            gameState.keys.player2.left = false; 
+            window.gameState.keys.player2.left = false; 
             // Stop movement sound
-            if (gameState.player2.movementSound) {
-                gameState.player2.movementSound.pause();
-                gameState.player2.movementSound = null;
+            if (window.gameState.player2.movementSound) {
+                window.gameState.player2.movementSound.pause();
+                window.gameState.player2.movementSound = null;
             }
             // Reset player 2 image when left key is released
-            resetPlayerIdleImage(gameState.player2);
+            resetPlayerIdleImage(window.gameState.player2);
             break;
         case 'ArrowRight': 
-            gameState.keys.player2.right = false; 
+            window.gameState.keys.player2.right = false; 
             // Stop movement sound
-            if (gameState.player2.movementSound) {
-                gameState.player2.movementSound.pause();
-                gameState.player2.movementSound = null;
+            if (window.gameState.player2.movementSound) {
+                window.gameState.player2.movementSound.pause();
+                window.gameState.player2.movementSound = null;
             }
             // Reset player 2 image when right key is released
-            resetPlayerIdleImage(gameState.player2);
+            resetPlayerIdleImage(window.gameState.player2);
             break;
         case 'ArrowDown': 
-            gameState.keys.player2.guard = false; 
-            stopGuardPlayer(gameState.player2);
+            window.gameState.keys.player2.guard = false; 
+            stopGuardPlayer(window.gameState.player2);
             break;
         case 'k': 
-            gameState.keys.player2.punch = false; 
+            window.gameState.keys.player2.punch = false; 
             break;
         case 'l': 
-            gameState.keys.player2.kick = false; 
+            window.gameState.keys.player2.kick = false; 
             break;
     }
 }
@@ -546,15 +581,15 @@ function gameLoop() {
     updateGameState();
     
     // Regenerate stamina for both players
-    regenerateStamina(gameState.player1);
-    regenerateStamina(gameState.player2);
+    regenerateStamina(window.gameState.player1);
+    regenerateStamina(window.gameState.player2);
     
     // Render the game
     renderGame();
     
     // Check for game over
-    if (!gameState.gameOver) {
-        gameState.animationFrame = requestAnimationFrame(gameLoop);
+    if (!window.gameState.gameOver) {
+        window.gameState.animationFrame = requestAnimationFrame(gameLoop);
     } else {
         endGame();
     }
@@ -562,47 +597,47 @@ function gameLoop() {
 
 function processInput() {
     // Process Player 1 input
-    if (gameState.keys.player1.left) {
-        movePlayer(gameState.player1, -1);
-    } else if (gameState.keys.player1.right) {
-        movePlayer(gameState.player1, 1);
-    } else if (!gameState.player1.isJumping && !gameState.player1.isAttacking && !gameState.player1.isGuarding) {
+    if (window.gameState.keys.player1.left) {
+        movePlayer(window.gameState.player1, -1);
+    } else if (window.gameState.keys.player1.right) {
+        movePlayer(window.gameState.player1, 1);
+    } else if (!window.gameState.player1.isJumping && !window.gameState.player1.isAttacking && !window.gameState.player1.isGuarding) {
         // Reset to idle image if no movement keys are pressed and not in another state
-        resetPlayerIdleImage(gameState.player1);
+        resetPlayerIdleImage(window.gameState.player1);
     }
     
-    if (gameState.keys.player1.jump && !gameState.player1.isJumping) {
-        jumpPlayer(gameState.player1);
+    if (window.gameState.keys.player1.jump && !window.gameState.player1.isJumping) {
+        jumpPlayer(window.gameState.player1);
     }
-    if (gameState.keys.player1.guard) {
-        guardPlayer(gameState.player1);
-    } else if (gameState.player1.isGuarding) {
-        stopGuardPlayer(gameState.player1);
+    if (window.gameState.keys.player1.guard) {
+        guardPlayer(window.gameState.player1);
+    } else if (window.gameState.player1.isGuarding) {
+        stopGuardPlayer(window.gameState.player1);
     }
 
     // Process Player 2 input
-    if (gameState.keys.player2.left) {
-        movePlayer(gameState.player2, -1);
-    } else if (gameState.keys.player2.right) {
-        movePlayer(gameState.player2, 1);
-    } else if (!gameState.player2.isJumping && !gameState.player2.isAttacking && !gameState.player2.isGuarding) {
+    if (window.gameState.keys.player2.left) {
+        movePlayer(window.gameState.player2, -1);
+    } else if (window.gameState.keys.player2.right) {
+        movePlayer(window.gameState.player2, 1);
+    } else if (!window.gameState.player2.isJumping && !window.gameState.player2.isAttacking && !window.gameState.player2.isGuarding) {
         // Reset to idle image if no movement keys are pressed and not in another state
-        resetPlayerIdleImage(gameState.player2);
+        resetPlayerIdleImage(window.gameState.player2);
     }
     
-    if (gameState.keys.player2.jump && !gameState.player2.isJumping) {
-        jumpPlayer(gameState.player2);
+    if (window.gameState.keys.player2.jump && !window.gameState.player2.isJumping) {
+        jumpPlayer(window.gameState.player2);
     }
-    if (gameState.keys.player2.guard) {
-        guardPlayer(gameState.player2);
-    } else if (gameState.player2.isGuarding) {
-        stopGuardPlayer(gameState.player2);
+    if (window.gameState.keys.player2.guard) {
+        guardPlayer(window.gameState.player2);
+    } else if (window.gameState.player2.isGuarding) {
+        stopGuardPlayer(window.gameState.player2);
     }
 }
 
 function movePlayer(player, direction) {
     // Don't allow movement while attacking or guarding
-    if (player.isAttacking || player.isGuarding || (player === gameState.player1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+    if (player.isAttacking || player.isGuarding || (player === window.gameState.player1 ? window.gameState.keys.player1.guard : window.gameState.keys.player2.guard)) {
         return;
     }
     
@@ -611,50 +646,41 @@ function movePlayer(player, direction) {
     const moveAmount = direction * 5;
     const newPosition = player.position + moveAmount;
     
-    // Get character hitbox width
-    const characterWidth = 150; // New standardized width for both characters
+    // Get character hitbox width and minimum separation
+    const characterWidth = 150;
+    const minSeparation = 70; // Minimum separation between characters
     
     // Calculate boundaries with hitbox consideration
-    const leftBoundary = gameState.arena.boundaries.left;
-    const rightBoundary = gameState.arena.boundaries.right - characterWidth;
+    const leftBoundary = window.gameState.arena.boundaries.left;
+    const rightBoundary = window.gameState.arena.boundaries.right - characterWidth;
     
-    // Keep player within boundaries
-    if (newPosition < leftBoundary) {
-        player.position = leftBoundary;
-    } else if (newPosition > rightBoundary) {
-        player.position = rightBoundary;
-    } else {
-        player.position = newPosition;
-    }
+    // Get the other player
+    const otherPlayer = player === window.gameState.player1 ? window.gameState.player2 : window.gameState.player1;
     
-    // Check for collision with other player
-    const otherPlayer = player === gameState.player1 ? gameState.player2 : gameState.player1;
-    const minDistance = 25; // Minimum distance between players
+    // Calculate new position with collision prevention
+    let finalPosition = newPosition;
     
-    // Calculate distance between players
-    const distance = Math.abs(player.position - otherPlayer.position);
+    // Check if moving towards the other player
+    const isMovingTowardsOther = (direction > 0 && player.position < otherPlayer.position) || 
+                                (direction < 0 && player.position > otherPlayer.position);
     
-    // If players are too close, instantly teleport to maintain minimum distance
-    if (distance < minDistance) {
-        // Determine which side the player is approaching from
-        const isApproachingFromLeft = player.position < otherPlayer.position;
-        
-        // Calculate the teleport position (26px distance)
-        if (isApproachingFromLeft) {
-            // Player is approaching from left, teleport to right side of opponent
-            player.position = otherPlayer.position - 26;
-        } else {
-            // Player is approaching from right, teleport to left side of opponent
-            player.position = otherPlayer.position + 26;
-        }
-        
-        // Ensure the new position is within boundaries
-        if (player.position < leftBoundary) {
-            player.position = leftBoundary;
-        } else if (player.position > rightBoundary) {
-            player.position = rightBoundary;
+    if (isMovingTowardsOther) {
+        const distance = Math.abs(newPosition - otherPlayer.position);
+        if (distance < minSeparation) {
+            // If too close, stop at the minimum separation distance
+            finalPosition = otherPlayer.position + (player.position < otherPlayer.position ? -minSeparation : minSeparation);
         }
     }
+    
+    // Apply boundary limits
+    if (finalPosition < leftBoundary) {
+        finalPosition = leftBoundary;
+    } else if (finalPosition > rightBoundary) {
+        finalPosition = rightBoundary;
+    }
+    
+    // Update player position
+    player.position = finalPosition;
     
     // Update player direction
     player.direction = direction;
@@ -663,30 +689,27 @@ function movePlayer(player, direction) {
     if (player.element) {
         player.element.style.left = player.position + 'px';
         // Maintain Y-axis position for Reign
-        if ((player === gameState.player1 && gameState.player1.character === 'reign') || 
-            (player === gameState.player2 && gameState.player2.character === 'reign')) {
-            player.element.style.bottom = '50px'; // Keep Reign at the same height
+        if ((player === window.gameState.player1 && window.gameState.player1.character === 'reign') || 
+            (player === window.gameState.player2 && window.gameState.player2.character === 'reign')) {
+            player.element.style.bottom = '50px';
         }
     }
     
     // Handle movement sound
     if (!player.movementSound) {
-        const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+        const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
         const soundPath = '../assests/audio/movementSFX/movement.mp3';
 
-        // Create and play the movement sound
         player.movementSound = new Audio(soundPath);
         player.movementSound.volume = 0.6;
         player.movementSound.loop = false;
         
-        // Set playback speed based on character
         if (characterId === 'reign') {
-            player.movementSound.playbackRate = 1.5; // Faster speed for Reign
+            player.movementSound.playbackRate = 1.5;
         } else {
-            player.movementSound.playbackRate = 1.0; // Normal speed for Curse-or
+            player.movementSound.playbackRate = 1.0;
         }
         
-        // Add ended event listener to clean up the sound object
         player.movementSound.addEventListener('ended', () => {
             player.movementSound = null;
         });
@@ -696,20 +719,18 @@ function movePlayer(player, direction) {
     
     // Update player image for movement
     updatePlayerMovementImage(player, direction);
-    
-    console.log(`Player moved: ${oldPosition} -> ${player.position}, direction: ${direction}`);
 }
 
 function jumpPlayer(player) {
     // Don't allow jumping while guarding
-    if (player.isGuarding || (player === gameState.player1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+    if (player.isGuarding || (player === window.gameState.player1 ? window.gameState.keys.player1.guard : window.gameState.keys.player2.guard)) {
         return;
     }
     
     player.isJumping = true;
     
     // Play character-specific jump sound with increased volume and more pitch variance
-    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
     const jumpSound = new Audio(characterId === 'curse-or' ? 
         '../assests/audio/movementSFX/jump.mp3' : 
         '../assests/audio/movementSFX/jump2.mp3');
@@ -746,7 +767,7 @@ function jumpPlayer(player) {
             }
             
             // Check for collision after landing
-            const otherPlayer = player === gameState.player1 ? gameState.player2 : gameState.player1;
+            const otherPlayer = player === window.gameState.player1 ? window.gameState.player2 : window.gameState.player1;
             const minDistance = 25; // Minimum distance between players
             
             // Calculate distance between players
@@ -770,7 +791,7 @@ function jumpPlayer(player) {
 }
 
 function guardPlayer(player) {
-    const isPlayer1 = player === gameState.player1;
+    const isPlayer1 = player === window.gameState.player1;
     
     // Don't allow guarding while jumping
     if (player.isJumping) {
@@ -808,7 +829,7 @@ function guardPlayer(player) {
     if (!playerImage) return;
     
     // Get the character ID
-    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    const characterId = isPlayer1 ? window.gameState.player1.character : window.gameState.player2.character;
     
     // Set the correct block animation based on character
     let blockPath;
@@ -823,9 +844,9 @@ function guardPlayer(player) {
         playerImage.style.backgroundImage = `url(${blockPath})`;
         
         // Preserve the correct orientation and scaling
-        const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+        const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
         
-        if (player === gameState.player1) {
+        if (player === window.gameState.player1) {
             if (characterId === 'reign') {
                 playerImage.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
             } else {
@@ -855,7 +876,7 @@ function showStaminaWarning(player) {
 }
 
 function stopGuardPlayer(player) {
-    const isPlayer1 = player === gameState.player1;
+    const isPlayer1 = player === window.gameState.player1;
     
     // Clear guard state immediately
     player.isGuarding = false;
@@ -871,97 +892,59 @@ function stopGuardPlayer(player) {
     
     console.log('Guard deactivated:', isPlayer1 ? 'Player 1' : 'Player 2', {
         isGuarding: player.isGuarding,
-        guardKey: isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard
+        guardKey: isPlayer1 ? window.gameState.keys.player1.guard : window.gameState.keys.player2.guard
     });
 }
 
 // Update attack player function to remove combo logic
 function attackPlayer(player, attackType) {
-    const isPlayer1 = player === gameState.player1;
-    
-    // Don't allow attacks during other actions
-    if (player.isAttacking || player.isJumping || player.isDodging || 
-        player.isGuarding || 
-        (isPlayer1 ? gameState.keys.player1.guard : gameState.keys.player2.guard)) {
+    // Don't allow attacking while jumping or guarding
+    if (player.isJumping || player.isGuarding) {
         return;
     }
-    
+
+    // Set attacking state
     player.isAttacking = true;
     player.attackType = attackType;
 
-    const playerImage = player.element?.querySelector('.fighter-image');
-    if (!playerImage) return;
-    
-    // Get the character ID and set attack animation
-    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
-    let attackPath = getAttackAnimationPath(characterId, attackType);
-    
-    if (attackPath) {
-        playerImage.style.backgroundImage = `url(${attackPath})`;
+    // Get the defender (other player)
+    const defender = player === window.gameState.player1 ? window.gameState.player2 : window.gameState.player1;
 
-        // Play attack sound based on character and attack type
-        if (characterId === 'curse-or' && attackType === 'punch') {
-            // Curse-or punch sounds with layered effects
-            const punchSound1 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_16.wav');
-            const punchSound2 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_30.wav');
-            punchSound1.volume = 0.45;
-            punchSound2.volume = 0.25;
-            punchSound1.playbackRate = 1.0 + (Math.random() * 0.4); // 1.0 to 1.4
-            punchSound2.playbackRate = 1.2 + (Math.random() * 0.3); // 1.2 to 1.5
-            punchSound1.play().catch(e => console.warn('Sound play failed:', e));
-            setTimeout(() => {
-                punchSound2.play().catch(e => console.warn('Sound play failed:', e));
-            }, 10);
-        } else if (characterId === 'curse-or' && attackType === 'kick') {
-            // Curse-or kick sound with layered effects
-            const kickSound = new Audio('../assests/audio/FightSFX/Kick/kick_short_whoosh_12.wav');
-            kickSound.volume = 0.5;
-            kickSound.playbackRate = 0.9 + (Math.random() * 0.4); // 0.9 to 1.3
-            kickSound.play().catch(e => console.warn('Sound play failed:', e));
-        } else if (characterId === 'reign' && attackType === 'punch') {
-            // Reign punch sounds with layered effects
-            const punchSound1 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_16.wav');
-            const punchSound2 = new Audio('../assests/audio/FightSFX/Punch/punch_short_whoosh_30.wav');
-            punchSound1.volume = 0.45;
-            punchSound2.volume = 0.25;
-            punchSound1.playbackRate = 1.0 + (Math.random() * 0.4); // 1.0 to 1.4
-            punchSound2.playbackRate = 1.2 + (Math.random() * 0.3); // 1.2 to 1.5
-            punchSound1.play().catch(e => console.warn('Sound play failed:', e));
-            setTimeout(() => {
-                punchSound2.play().catch(e => console.warn('Sound play failed:', e));
-            }, 10);
-        } else if (characterId === 'reign' && attackType === 'kick') {
-            // Reign kick sound with layered effects
-            const kickSound = new Audio('../assests/audio/FightSFX/Kick/kick_short_whoosh_23.wav');
-            kickSound.volume = 0.5;
-            kickSound.playbackRate = 0.9 + (Math.random() * 0.4); // 0.9 to 1.3
-            kickSound.play().catch(e => console.warn('Sound play failed:', e));
+    // Update player image for attack
+    const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
+    const attackPath = getAttackAnimationPath(characterId, attackType);
+    
+    if (player.element) {
+        const playerImage = player.element.querySelector('.fighter-image');
+        if (playerImage) {
+            playerImage.style.backgroundImage = `url(${attackPath})`;
         }
-        
-        // Determine the defender
-        const defender = isPlayer1 ? gameState.player2 : gameState.player1;
-        const distance = Math.abs(player.position - defender.position);
-        
-        // Check for hit
-        if (distance < 50) {
-            if (defender.isGuarding) {
-                showBlockedEffect(defender);
-            } else {
-                // Apply damage based on attack type
-                const damage = attackType === 'punch' ? 5 : 7; // 5 for punch, 7 for kick
-                applyDamage(defender, damage);
-                showHitEffect(defender);
-                showAttackText(player, attackType);
-            }
-        }
-        
-        // Reset to idle after attack
-        setTimeout(() => {
-            resetPlayerIdleImage(player);
-            player.isAttacking = false;
-            player.attackType = null;
-        }, 250);
     }
+
+    // Calculate distance between players
+    const distance = Math.abs(player.position - defender.position);
+    
+    // Check for hit with standard attack range
+    const attackRange = 70; // Basic attack range of 50px
+    
+    if (distance <= attackRange) {
+        if (defender.isGuarding) {
+            showBlockedEffect(defender);
+        } else {
+            // Apply damage based on attack type
+            const damage = attackType === 'punch' ? 5 : 7;
+            applyDamage(defender, damage);
+            showHitEffect(defender);
+            showAttackText(player, attackType);
+        }
+    }
+    
+    // Reset to idle after attack
+    setTimeout(() => {
+        resetPlayerIdleImage(player);
+        player.isAttacking = false;
+        player.attackType = null;
+    }, 250);
 }
 
 // Helper function to get attack animation path
@@ -1026,13 +1009,10 @@ function showDodgedEffect(player) {
 function applyDamage(player, amount) {
     // Store previous health for comparison
     const previousHealth = player.health;
-    
-    // Update last damage taken time
-    player.lastDamageTaken = Date.now();
-    
-    // Reduce player health
-    player.health -= amount;
-    if (player.health < 0) player.health = 0;
+    player.lastDamageTakenTime = Date.now();
+
+    // Reduce health and ensure it doesn't go below 0
+    player.health = Math.max(0, player.health - amount);
     
     // Update health bar
     updateHealthBar(player);
@@ -1042,17 +1022,141 @@ function applyDamage(player, amount) {
     
     // Add screen shake for significant damage
     if (amount >= 10) {
-        const fightArena = document.getElementById('fightArena');
-        if (fightArena) {
-            fightArena.classList.add('screen-shake');
-            setTimeout(() => fightArena.classList.remove('screen-shake'), 300);
-        }
+        document.body.classList.add('screen-shake');
+        setTimeout(() => {
+            document.body.classList.remove('screen-shake');
+        }, 200);
     }
     
     // Check for knockout
-    if (player.health <= 0) {
-        gameState.gameOver = true;
-        gameState.winner = player === gameState.player1 ? gameState.player2 : gameState.player1;
+    if (player.health === 0 && previousHealth > 0) {
+        // Pause the round
+        window.gameState.roundStarted = false;
+        window.gameState.roundPaused = true;
+
+        // Stop background music
+        const mapMusic = document.getElementById('mapMusic');
+        if (mapMusic) {
+            mapMusic.pause();
+            mapMusic.currentTime = 0;
+        }
+
+        // Create game over overlay
+        const gameOverOverlay = document.createElement('div');
+        gameOverOverlay.id = 'gameOverOverlay';
+        gameOverOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: 'Arial', sans-serif;
+        `;
+
+        // Create winner announcement
+        const winnerText = document.createElement('div');
+        winnerText.textContent = `PLAYER ${player === window.gameState.player1 ? '2' : '1'} WINS!`;
+        winnerText.style.cssText = `
+            font-size: 72px;
+            color: #fff;
+            text-shadow: 0 0 20px #fff,
+                         0 0 30px #ff0000,
+                         0 0 40px #ff0000;
+            margin-bottom: 50px;
+            font-weight: bold;
+            text-align: center;
+        `;
+        gameOverOverlay.appendChild(winnerText);
+
+        // Create container for buttons
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        `;
+
+        // Create buttons
+        const buttons = [
+            { 
+                text: 'REPLAY', 
+                href: 'javascript:void(0)', 
+                onClick: () => {
+                    sessionStorage.setItem('isReplay', 'true');
+                    location.reload();
+                }
+            },
+            { text: 'CHANGE FIGHTERS', href: 'playerselection.html' },
+            { text: 'CHANGE MAP', href: 'maps.html' },
+            { text: 'BACK TO MENU', href: 'index.html' }
+        ];
+
+        buttons.forEach(({ text, href, onClick }) => {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.style.cssText = `
+                padding: 15px 30px;
+                font-size: 24px;
+                background: linear-gradient(to bottom, #ff3333, #cc0000);
+                color: white;
+                border: 2px solid #ff4444;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 300px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            `;
+
+            // Add hover effect
+            button.onmouseover = () => {
+                button.style.transform = 'scale(1.05)';
+                button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.4)';
+                if (window.SoundManager) {
+                    window.SoundManager.playHoverSound();
+                }
+            };
+            button.onmouseout = () => {
+                button.style.transform = 'scale(1)';
+                button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            };
+
+            // Add click handler with sound
+            button.onclick = () => {
+                if (window.SoundManager) {
+                    window.SoundManager.playClickSound();
+                }
+                setTimeout(() => {
+                    if (onClick) {
+                        onClick();
+                    } else {
+                        window.location.href = href;
+                    }
+                }, 300);
+            };
+
+            buttonsContainer.appendChild(button);
+        });
+
+        gameOverOverlay.appendChild(buttonsContainer);
+        document.body.appendChild(gameOverOverlay);
+
+        // Add fade-in animation
+        gameOverOverlay.animate([
+            { opacity: 0 },
+            { opacity: 1 }
+        ], {
+            duration: 500,
+            easing: 'ease-out',
+            fill: 'forwards'
+        });
     }
 }
 
@@ -1099,7 +1203,7 @@ function showHitEffect(player) {
     hitSound.play().catch(e => console.warn('Sound play failed:', e));
     
     // Get the character ID
-    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
     
     // Set the correct hit animation based on character
     let hitPath;
@@ -1132,7 +1236,7 @@ function showHitEffect(player) {
         hitOutlineContainer.style.left = '0';
         hitOutlineContainer.style.pointerEvents = 'none';
 
-        // Create glowing outline effect
+        // Create hit outline effect
         const hitOutline = document.createElement('div');
         hitOutline.className = 'hit-outline';
         
@@ -1142,28 +1246,27 @@ function showHitEffect(player) {
             hitOutline.style.height = '260px';
             hitOutline.style.backgroundImage = `url(${hitPath})`;
             hitOutline.style.transform = currentTransform;
-            hitOutlineContainer.style.bottom = '40px';
-            hitOutline.style.top = '-60px';  // Add top offset for Curse-Or
+            hitOutline.style.bottom = '-60px';  // Adjust bottom position for Curse-Or
         } else {
             hitOutline.style.width = '100px';
             hitOutline.style.height = '150px';
             hitOutline.style.backgroundImage = `url(${hitPath})`;
             hitOutline.style.transform = `${currentTransform} scale(0.85)`;
+            hitOutline.style.bottom = '-60px';  // Add bottom position for Reign
         }
 
-        // Add outline to container
-        hitOutlineContainer.appendChild(hitOutline);
-        player.element.appendChild(hitOutlineContainer);
+        // Add outline directly to player element
+        player.element.appendChild(hitOutline);
 
         // Remove outline after animation
         setTimeout(() => {
-            hitOutlineContainer.remove();
+            hitOutline.remove();
         }, 300);
 
         // Add pushback effect
         const pushbackAmount = 15;
         const currentPosition = player.position;
-        const newPosition = player === gameState.player1 ? 
+        const newPosition = player === window.gameState.player1 ? 
             currentPosition - pushbackAmount : 
             currentPosition + pushbackAmount;
             
@@ -1212,45 +1315,45 @@ function playSound(soundType) {
 
 function updateGameState() {
     // Update player positions
-    if (gameState.player1.element) {
-        gameState.player1.element.style.left = gameState.player1.position + 'px';
-        console.log('Player 1 position:', gameState.player1.position);
+    if (window.gameState.player1.element) {
+        window.gameState.player1.element.style.left = window.gameState.player1.position + 'px';
+        console.log('Player 1 position:', window.gameState.player1.position);
     }
-    if (gameState.player2.element) {
-        gameState.player2.element.style.left = gameState.player2.position + 'px';
-        console.log('Player 2 position:', gameState.player2.position);
+    if (window.gameState.player2.element) {
+        window.gameState.player2.element.style.left = window.gameState.player2.position + 'px';
+        console.log('Player 2 position:', window.gameState.player2.position);
     }
     
     // Update player directions (flip sprites)
-    if (gameState.player1.position > gameState.player2.position) {
+    if (window.gameState.player1.position > window.gameState.player2.position) {
         // Player 1 is to the right of Player 2
-        gameState.player1.element.classList.add('facing-left');
-        gameState.player2.element.classList.remove('facing-left');
+        window.gameState.player1.element.classList.add('facing-left');
+        window.gameState.player2.element.classList.remove('facing-left');
     } else {
         // Player 1 is to the left of Player 2
-        gameState.player1.element.classList.remove('facing-left');
-        gameState.player2.element.classList.add('facing-left');
+        window.gameState.player1.element.classList.remove('facing-left');
+        window.gameState.player2.element.classList.add('facing-left');
     }
 }
 
 function renderGame() {
     // Update player positions
-    if (gameState.player1.element && gameState.player2.element) {
+    if (window.gameState.player1.element && window.gameState.player2.element) {
         // Update positions
-        gameState.player1.element.style.left = gameState.player1.position + 'px';
-        gameState.player2.element.style.left = gameState.player2.position + 'px';
+        window.gameState.player1.element.style.left = window.gameState.player1.position + 'px';
+        window.gameState.player2.element.style.left = window.gameState.player2.position + 'px';
 
         // Update orientations only if not in any animation
-        const player1Image = gameState.player1.element.querySelector('.fighter-image');
-        const player2Image = gameState.player2.element.querySelector('.fighter-image');
+        const player1Image = window.gameState.player1.element.querySelector('.fighter-image');
+        const player2Image = window.gameState.player2.element.querySelector('.fighter-image');
         
         if (player1Image && !player1Image.classList.contains('jumping') && 
             !player1Image.classList.contains('punch') && 
             !player1Image.classList.contains('kick') && 
             !player1Image.classList.contains('hit')) {
             
-            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
-            if (gameState.player1.character === 'reign') {
+            const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
+            if (window.gameState.player1.character === 'reign') {
                 player1Image.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
             } else {
                 player1Image.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1262,8 +1365,8 @@ function renderGame() {
             !player2Image.classList.contains('kick') && 
             !player2Image.classList.contains('hit')) {
             
-            const player2IsOnRight = gameState.player2.position > gameState.player1.position;
-            if (gameState.player2.character === 'reign') {
+            const player2IsOnRight = window.gameState.player2.position > window.gameState.player1.position;
+            if (window.gameState.player2.character === 'reign') {
                 player2Image.style.transform = player2IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
             } else {
                 player2Image.style.transform = player2IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1276,36 +1379,63 @@ function renderGame() {
 }
 
 function endGame() {
-    cancelAnimationFrame(gameState.animationFrame);
+    // Cancel animation frame
+    if (window.gameState.animationFrame) {
+    cancelAnimationFrame(window.gameState.animationFrame);
+    }
     
-    // Show winner
+    // Show game over text
     const fightText = document.getElementById('fightText');
     if (fightText) {
         fightText.style.display = 'block';
-        
-        // Get the winner's character ID
-        const winnerId = gameState.winner === gameState.player1 ? gameState.player1.character : gameState.player2.character;
-        
-        // Format the winner message based on the character
-        const winnerName = formatCharacterName(winnerId);
-        fightText.textContent = `${winnerName} WINS!`;
-        
         fightText.style.transform = 'scale(1)';
         fightText.style.opacity = '1';
+        
+        if (window.gameState.winner) {
+            const winnerName = window.gameState.winner === window.gameState.player1 ? 'PLAYER 1' : 'PLAYER 2';
+        fightText.textContent = `${winnerName} WINS!`;
+        
+            // Play victory sound
+            const victorySound = document.getElementById('victorySound');
+            if (victorySound) {
+                victorySound.volume = 0.5;
+                victorySound.play().catch(error => console.error('Error playing victory sound:', error));
+            }
+        } else {
+            fightText.textContent = "TIME'S UP!";
+        }
     }
     
-    // Play victory sound
-    playSound('victory');
-    
     // Show replay button
-    const replayButton = document.createElement('button');
-    replayButton.textContent = 'PLAY AGAIN';
-    replayButton.id = 'replayButton';
-    replayButton.onclick = () => window.location.reload();
-    
     const controls = document.getElementById('controls');
     if (controls) {
+        const replayButton = document.createElement('button');
+        replayButton.id = 'replayButton';
+        replayButton.textContent = 'PLAY AGAIN';
+        replayButton.onclick = () => {
+            if (window.SoundManager) {
+                SoundManager.playClickSound();
+            }
+            setTimeout(() => {
+                window.location.href = 'playerselection.html';
+            }, 300);
+        };
+        replayButton.onmouseover = () => {
+            if (window.SoundManager) {
+                SoundManager.playHoverSound();
+            }
+        };
         controls.appendChild(replayButton);
+    }
+
+    // Disable controls
+    window.gameState.gameOver = true;
+    window.gameState.roundStarted = false;
+    window.gameState.roundPaused = true;
+
+    // Stop any ongoing animations
+    if (window.gameState.player1.element) {
+        window.gameState.player1.element.classList.remove('jumping', 'punch', 'kick', 'hit', 'guarding');
     }
 }
 
@@ -1472,6 +1602,25 @@ function setupFighters(player1Character, player2Character) {
     
     // Remove debug logging
     console.log('Fighters initialized');
+
+    // Set up player 1 positioning
+    const player1Container = document.getElementById('player1');
+    const player1FighterImage = player1Container.querySelector('.fighter-image');
+    if (player1Character === 'curse-or') {
+        player1FighterImage.style.bottom = '-20px';
+        player1FighterImage.style.position = 'absolute';
+    }
+
+    // Set up player 2 positioning
+    const player2Container = document.getElementById('player2');
+    const player2FighterImage = player2Container.querySelector('.fighter-image');
+    if (player2Character === 'curse-or') {
+        player2FighterImage.style.bottom = '-80px';
+        player2FighterImage.style.position = 'absolute';
+    } else if (player2Character === 'reign') {
+        player2FighterImage.style.bottom = '-60px';
+        player2FighterImage.style.position = 'absolute';
+    }
 }
 
 function formatCharacterName(id) {
@@ -1488,20 +1637,71 @@ function formatCharacterName(id) {
 
 function setupGameTimer() {
     let timeLeft = 60;
+    let isOvertime = false;
     const timerElement = document.querySelector('.timer');
     
     if (!timerElement) return;
   
+    // Initialize timer display with leading zero
+    timerElement.textContent = timeLeft.toString().padStart(2, '0');
+  
+    // Wait for the round to start before starting the timer
+    const waitForStart = () => {
+        if (window.gameState && window.gameState.roundStarted && !window.gameState.roundPaused) {
+            startTimer();
+        } else {
+            requestAnimationFrame(waitForStart);
+        }
+    };
+
+    const startTimer = () => {
   const gameTimer = setInterval(() => {
+            // Only count down if round is still active and not paused
+            if (window.gameState && window.gameState.roundStarted && !window.gameState.roundPaused) {
       timeLeft--;
-      timerElement.textContent = timeLeft;
+                // Update timer display with leading zero
+                if (timerElement) {
+                    timerElement.textContent = timeLeft.toString().padStart(2, '0');
+                }
       
+                // Check if time is up
       if (timeLeft <= 0) {
+                    if (!isOvertime) {
+                        // Check if players have equal health
+                        if (window.gameState.player1.health === window.gameState.player2.health) {
+                            // Start overtime based on round number
+                            isOvertime = true;
+                            if (window.gameState.currentRound === 3) {
+                                timeLeft = 30; // 30 seconds overtime for round 3
+                            } else {
+                                timeLeft = 15; // 15 seconds overtime for rounds 1 and 2
+                            }
+                            // Update timer display
+                            timerElement.textContent = timeLeft.toString().padStart(2, '0');
+                            timerElement.style.color = '#ff0000'; // Make timer red during overtime
+                            return; // Continue the timer
+                        }
+                    }
+                    
+                    // Time is up, determine winner
           clearInterval(gameTimer);
-            // Handle time over - show time's up message
-            document.getElementById('fightText').textContent = "TIME'S UP!";
+                    const roundWinner = window.gameState.player1.health > window.gameState.player2.health ? 'player1' : 'player2';
+                    handleRoundEnd(roundWinner);
+                    
+                    // Reset overtime styling
+                    if (isOvertime) {
+                        timerElement.style.color = '#fff';
+                    }
+                }
       }
   }, 1000);
+
+        // Store the timer reference in gameState
+        window.gameState.currentTimer = gameTimer;
+    };
+
+    // Start waiting for round to begin
+    waitForStart();
 }
 
 function animateFightText() {
@@ -1521,8 +1721,8 @@ function animateFightText() {
 }
 
 function recordSpecialMoveKey(player, key) {
-    const isPlayer1 = player === gameState.player1;
-    const specialMoveState = isPlayer1 ? gameState.specialMoves.player1 : gameState.specialMoves.player2;
+    const isPlayer1 = player === window.gameState.player1;
+    const specialMoveState = isPlayer1 ? window.gameState.specialMoves.player1 : window.gameState.specialMoves.player2;
     
     const currentTime = Date.now();
     
@@ -1547,12 +1747,12 @@ function recordSpecialMoveKey(player, key) {
 }
 
 function checkSpecialMoves(player) {
-    if (player.isAttacking || gameState.specialMoves.player1.cooldown || gameState.specialMoves.player2.cooldown) {
+    if (player.isAttacking || window.gameState.specialMoves.player1.cooldown || window.gameState.specialMoves.player2.cooldown) {
         return;
     }
     
-    const isPlayer1 = player === gameState.player1;
-    const specialMoveState = isPlayer1 ? gameState.specialMoves.player1 : gameState.specialMoves.player2;
+    const isPlayer1 = player === window.gameState.player1;
+    const specialMoveState = isPlayer1 ? window.gameState.specialMoves.player1 : window.gameState.specialMoves.player2;
     const sequence = specialMoveState.sequence.join(',');
     
     // Define special moves based on character
@@ -1568,7 +1768,7 @@ function checkSpecialMoves(player) {
             specialMoveState.sequence = [];
             
             // Set cooldown
-            const cooldownObj = isPlayer1 ? gameState.specialMoves.player1 : gameState.specialMoves.player2;
+            const cooldownObj = isPlayer1 ? window.gameState.specialMoves.player1 : window.gameState.specialMoves.player2;
             cooldownObj.cooldown = true;
             setTimeout(() => {
                 cooldownObj.cooldown = false;
@@ -1601,7 +1801,7 @@ function getSpecialMovesForCharacter(character) {
 }
 
 function executeSpecialMove(player, move) {
-    console.log(`${player === gameState.player1 ? 'Player 1' : 'Player 2'} executed ${move.name}!`);
+    console.log(`${player === window.gameState.player1 ? 'Player 1' : 'Player 2'} executed ${move.name}!`);
     
     // Add special move animation class
     if (player.element) {
@@ -1620,22 +1820,17 @@ function executeSpecialMove(player, move) {
     }
     
     // Determine the opponent
-    const opponent = player === gameState.player1 ? gameState.player2 : gameState.player1;
+    const opponent = player === window.gameState.player1 ? window.gameState.player2 : window.gameState.player1;
     
     // Calculate distance between players
     const distance = Math.abs(player.position - opponent.position);
     
-    // Check if players are close enough for a hit (special moves have longer range - increased from 300 to 400)
-    if (distance < 400) {
-        // Check if opponent is guarding
+    // Increased special move range to match new character separation
+    if (distance <= 450) { // Increased from 400
         if (!opponent.isGuarding) {
-            // Apply damage to opponent
             applyDamage(opponent, move.damage);
-            
-            // Show hit effect
             showHitEffect(opponent);
         } else {
-            // Opponent is guarding - show blocked effect
             showBlockedEffect(opponent);
         }
     }
@@ -1677,8 +1872,8 @@ function updateDebugOverlay() {
     if (!debugOverlay) return;
     
     // Format game state for display
-    const p1 = gameState.player1;
-    const p2 = gameState.player2;
+    const p1 = window.gameState.player1;
+    const p2 = window.gameState.player2;
     
     const debugInfo = `
         <h3>Debug Info</h3>
@@ -1692,9 +1887,9 @@ function updateDebugOverlay() {
         <p>Health: ${p2.health}</p>
         <p>State: ${getPlayerStateText(p2)}</p>
         <hr>
-        <p>Arena width: ${gameState.arena.width}</p>
-        <p>Left boundary: ${gameState.arena.boundaries.left}</p>
-        <p>Right boundary: ${gameState.arena.boundaries.right}</p>
+        <p>Arena width: ${window.gameState.arena.width}</p>
+        <p>Left boundary: ${window.gameState.arena.boundaries.left}</p>
+        <p>Right boundary: ${window.gameState.arena.boundaries.right}</p>
         <hr>
         <p>Keys: ${getActiveKeysText()}</p>
     `;
@@ -1712,11 +1907,11 @@ function getPlayerStateText(player) {
 }
 
 function getActiveKeysText() {
-    const p1Keys = Object.entries(gameState.keys.player1)
+    const p1Keys = Object.entries(window.gameState.keys.player1)
         .filter(([_, value]) => value)
         .map(([key]) => key);
     
-    const p2Keys = Object.entries(gameState.keys.player2)
+    const p2Keys = Object.entries(window.gameState.keys.player2)
         .filter(([_, value]) => value)
         .map(([key]) => key);
     
@@ -1749,7 +1944,7 @@ function updateHealthBar(player) {
         const opacity = (100 - percentage) / 100; // When health is 100%, opacity will be 0
         
         // Update blood overlay opacity based on player health
-        if (player === gameState.player1) {
+        if (player === window.gameState.player1) {
             const leftOverlay = document.getElementById('left-blood-overlay');
             if (leftOverlay) {
                 leftOverlay.style.opacity = opacity.toString();
@@ -1764,7 +1959,7 @@ function updateHealthBar(player) {
         // Update center blood overlay based on average health
         const centerOverlay = document.getElementById('center-blood-overlay');
         if (centerOverlay) {
-            const averageHealth = (gameState.player1.health + gameState.player2.health) / 2;
+            const averageHealth = (window.gameState.player1.health + window.gameState.player2.health) / 2;
             const centerOpacity = (100 - averageHealth) / 100;
             centerOverlay.style.opacity = centerOpacity.toString();
         }
@@ -1849,10 +2044,10 @@ function updatePlayerMovementImage(player, direction) {
     const playerImage = player.element.querySelector('.fighter-image');
     if (!playerImage) return;
     
-    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
     
     // Debug log to check character ID
-    console.log(`updatePlayerMovementImage - Player: ${player === gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}, Direction: ${direction}`);
+    console.log(`updatePlayerMovementImage - Player: ${player === window.gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}, Direction: ${direction}`);
     
     let imagePath;
     
@@ -1863,10 +2058,10 @@ function updatePlayerMovementImage(player, direction) {
     }
     
     // Determine if players have crossed each other
-    const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+    const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
     
     // For Player 1
-    if (player === gameState.player1) {
+    if (player === window.gameState.player1) {
         // Determine the correct image path based on character and direction
         if (characterId === 'curse-or') {
             // Curse-or
@@ -1914,20 +2109,20 @@ function updatePlayerMovementImage(player, direction) {
     
     // Only update if we have a valid image path
     if (imagePath) {
-        console.log(`Updating ${player === gameState.player1 ? 'Player 1' : 'Player 2'} movement image: ${imagePath}`);
+        console.log(`Updating ${player === window.gameState.player1 ? 'Player 1' : 'Player 2'} movement image: ${imagePath}`);
         playerImage.style.backgroundImage = `url(${imagePath})`;
         
         // Preserve the correct orientation for Reign
         if (characterId !== 'curse-or') {
             // For Reign, we need to maintain the scale(0.85) transform
-            if (player === gameState.player1) {
+            if (player === window.gameState.player1) {
                 playerImage.style.transform = 'scaleX(-1) scale(0.85)';
             } else {
                 playerImage.style.transform = 'scaleX(1) scale(0.85)';
             }
         }
     } else {
-        console.warn(`No valid image path found for ${player === gameState.player1 ? 'Player 1' : 'Player 2'} with character ID: ${characterId}`);
+        console.warn(`No valid image path found for ${player === window.gameState.player1 ? 'Player 1' : 'Player 2'} with character ID: ${characterId}`);
     }
 }
 
@@ -1942,10 +2137,10 @@ function resetPlayerIdleImage(player) {
         return;
     }
     
-    const characterId = player === gameState.player1 ? gameState.player1.character : gameState.player2.character;
+    const characterId = player === window.gameState.player1 ? window.gameState.player1.character : window.gameState.player2.character;
     
     // Debug log to check character ID
-    console.log(`resetPlayerIdleImage - Player: ${player === gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}`);
+    console.log(`resetPlayerIdleImage - Player: ${player === window.gameState.player1 ? 'Player 1' : 'Player 2'}, Character ID: ${characterId}`);
     
     let idlePath;
     
@@ -1960,16 +2155,16 @@ function resetPlayerIdleImage(player) {
     
     // Only update if we have a valid image path and player is not in another state
     if (idlePath && !player.isJumping && !player.isAttacking && !player.isGuarding) {
-        console.log(`Resetting ${player === gameState.player1 ? 'Player 1' : 'Player 2'} to idle image: ${idlePath}`);
+        console.log(`Resetting ${player === window.gameState.player1 ? 'Player 1' : 'Player 2'} to idle image: ${idlePath}`);
         playerImage.style.backgroundImage = `url(${idlePath})`;
         
         // Preserve the correct orientation for Reign
         if (characterId !== 'curse-or') {
             // Determine if players have crossed each other
-            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
+            const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
             
             // For Reign, we need to maintain the scale(0.85) transform
-            if (player === gameState.player1) {
+            if (player === window.gameState.player1) {
                 if (player1IsOnRight) {
                     playerImage.style.transform = 'scaleX(-1) scale(0.85)';
                 } else {
@@ -1984,8 +2179,8 @@ function resetPlayerIdleImage(player) {
             }
         } else {
             // For Curse-or, just handle the scaleX
-            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
-            if (player === gameState.player1) {
+            const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
+            if (player === window.gameState.player1) {
                 playerImage.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
             } else {
                 playerImage.style.transform = player1IsOnRight ? 'scaleX(1)' : 'scaleX(-1)';
@@ -2126,22 +2321,22 @@ function addComboAnimationStyle() {
 }
 
 function updatePlayerPositions() {
-    if (gameState.player1.element) {
-        gameState.player1.element.style.left = gameState.player1.position + 'px';
+    if (window.gameState.player1.element) {
+        window.gameState.player1.element.style.left = window.gameState.player1.position + 'px';
     }
-    if (gameState.player2.element) {
-        gameState.player2.element.style.left = gameState.player2.position + 'px';
+    if (window.gameState.player2.element) {
+        window.gameState.player2.element.style.left = window.gameState.player2.position + 'px';
     }
     
     // Update player directions (flip sprites)
-    if (gameState.player1.element && gameState.player2.element) {
-        const player1Image = gameState.player1.element.querySelector('.fighter-image');
-        const player2Image = gameState.player2.element.querySelector('.fighter-image');
+    if (window.gameState.player1.element && window.gameState.player2.element) {
+        const player1Image = window.gameState.player1.element.querySelector('.fighter-image');
+        const player2Image = window.gameState.player2.element.querySelector('.fighter-image');
         
         // Only update orientation if not jumping
         if (player1Image && !player1Image.classList.contains('jumping')) {
-            const player1IsOnRight = gameState.player1.position > gameState.player2.position;
-            if (gameState.player1.character === 'reign') {
+            const player1IsOnRight = window.gameState.player1.position > window.gameState.player2.position;
+            if (window.gameState.player1.character === 'reign') {
                 player1Image.style.transform = player1IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
             } else {
                 player1Image.style.transform = player1IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
@@ -2149,8 +2344,8 @@ function updatePlayerPositions() {
         }
         
         if (player2Image && !player2Image.classList.contains('jumping')) {
-            const player2IsOnRight = gameState.player2.position > gameState.player1.position;
-            if (gameState.player2.character === 'reign') {
+            const player2IsOnRight = window.gameState.player2.position > window.gameState.player1.position;
+            if (window.gameState.player2.character === 'reign') {
                 player2Image.style.transform = player2IsOnRight ? 'scaleX(-1) scale(0.85)' : 'scaleX(1) scale(0.85)';
             } else {
                 player2Image.style.transform = player2IsOnRight ? 'scaleX(-1)' : 'scaleX(1)';
@@ -2500,12 +2695,12 @@ function healPlayer(player, amount) {
     const newHealth = Math.min(player.health + amount, 100);
     const actualHealAmount = newHealth - player.health;
     player.health = newHealth;
-    
+
     // Update health bar
     updateHealthBar(player);
     
     // Add healing class to blood overlay
-    const overlay = player === gameState.player1 ? 
+    const overlay = player === window.gameState.player1 ? 
         document.getElementById('left-blood-overlay') : 
         document.getElementById('right-blood-overlay');
     
@@ -2515,7 +2710,7 @@ function healPlayer(player, amount) {
             overlay.classList.remove('healing');
         }, 1000);
     }
-    
+
     // Show heal effects
     if (player.element && actualHealAmount > 0) {
         // Add healing amount display with random angle
@@ -2546,7 +2741,7 @@ function healPlayer(player, amount) {
                 healthBar.classList.remove('healing');
             }, 1000);
         }
-        
+
         // Show heal amount
         const healText = document.createElement('div');
         healText.className = 'heal-effect';
@@ -2554,7 +2749,7 @@ function healPlayer(player, amount) {
         healText.style.left = '50%';
         healText.style.top = '50%';
         player.element.appendChild(healText);
-        
+
         // Create floating + symbols
         for (let i = 1; i <= 3; i++) {
             const plusSymbol = document.createElement('div');
@@ -2563,13 +2758,13 @@ function healPlayer(player, amount) {
             plusSymbol.style.left = '50%';
             plusSymbol.style.top = '40%';
             player.element.appendChild(plusSymbol);
-            
+
             // Remove plus symbols after animation
             setTimeout(() => {
                 plusSymbol.remove();
             }, 1400);
         }
-        
+
         // Remove heal text after animation
         setTimeout(() => {
             healText.remove();
@@ -2626,7 +2821,7 @@ function healPlayer(player, amount) {
         }
 
         // Add healing effect to health bar
-        if (player.healthBar) {
+    if (player.healthBar) {
             player.healthBar.classList.add('healing-bar');
             setTimeout(() => {
                 player.healthBar.classList.remove('healing-bar');
@@ -2651,8 +2846,8 @@ function createDashClone(player) {
     clone.style.left = player.position + 'px';
     
     // Store reference to original player and character
-    const isPlayer1 = player === gameState.player1;
-    const characterId = isPlayer1 ? gameState.player1.character : gameState.player2.character;
+    const isPlayer1 = player === window.gameState.player1;
+    const characterId = isPlayer1 ? window.gameState.player1.character : window.gameState.player2.character;
     clone.dataset.originalPlayer = isPlayer1 ? 'player1' : 'player2';
     clone.dataset.character = characterId;
     clone.dataset.hit = 'false';
@@ -2661,10 +2856,10 @@ function createDashClone(player) {
     const arena = document.getElementById('fightArena');
     if (arena) {
         arena.appendChild(clone);
-
+        
         // Add hit detection for both Curse-or and Reign
         if (characterId === 'curse-or' || characterId === 'reign') {
-            const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+            const opponent = isPlayer1 ? window.gameState.player2 : window.gameState.player1;
             let cloneHit = false;
 
             // Check for hits every 50ms for better responsiveness
@@ -2699,7 +2894,7 @@ function createDashClone(player) {
                         laughSound2.playbackRate = 0.9;
                         
                         laughSound1.play().catch(e => console.warn('Laugh sound play failed:', e));
-                        setTimeout(() => {
+        setTimeout(() => {
                             laughSound2.play().catch(e => console.warn('Laugh sound play failed:', e));
                         }, 200);
 
@@ -2744,9 +2939,9 @@ function createDashClone(player) {
             setTimeout(() => {
                 if (!cloneHit && clone && clone.parentElement) {
                     clearInterval(hitCheckInterval);
-                    clone.remove();
-                }
-            }, 2000);
+                clone.remove();
+            }
+        }, 2000);
         } else {
             // For other characters, just remove after animation
             setTimeout(() => {
@@ -2789,8 +2984,8 @@ function performDash(player, direction) {
     const newPosition = player.position + dashDistance;
 
     // Get boundaries
-    const leftBoundary = gameState.arena.boundaries.left;
-    const rightBoundary = gameState.arena.boundaries.right - 150; // character width
+    const leftBoundary = window.gameState.arena.boundaries.left;
+    const rightBoundary = window.gameState.arena.boundaries.right - 150; // character width
 
     // Apply dash with boundary check
     if (newPosition < leftBoundary) {
@@ -2917,4 +3112,69 @@ function consumeStamina(player, amount) {
     player.stamina = Math.max(0, player.stamina - amount);
     updateStaminaBar(player);
     return true;
+}
+
+// Add new function to handle round end
+function handleRoundEnd(winner) {
+    // Prevent multiple triggers
+    if (!window.gameState.roundStarted || window.gameState.roundPaused) {
+        return;
+    }
+
+    // Pause the round
+    window.gameState.roundStarted = false;
+    window.gameState.roundPaused = true;
+
+    // Stop background music
+    const mapMusic = document.getElementById('mapMusic');
+    if (mapMusic) {
+        mapMusic.pause();
+        mapMusic.currentTime = 0;
+    }
+
+    // Game is over - let the announcer handle the game over sequence
+    if (window.announcer) {
+        window.announcer.handlePlayerDefeat(winner === 'player1' ? 2 : 1);
+    }
+}
+
+// Add new function to reset round
+function resetRound() {
+    // Reset health
+    window.gameState.player1.health = 100;
+    window.gameState.player2.health = 100;
+    updateHealthBar(window.gameState.player1);
+    updateHealthBar(window.gameState.player2);
+
+    // Reset stamina
+    window.gameState.player1.stamina = 100;
+    window.gameState.player2.stamina = 100;
+    updateStaminaBar(window.gameState.player1);
+    updateStaminaBar(window.gameState.player2);
+
+    // Reset positions
+    window.gameState.player1.position = window.gameState.arena.width * 0.3;
+    window.gameState.player2.position = window.gameState.arena.width * 0.7;
+            
+            // Reset states
+    window.gameState.player1.isJumping = false;
+    window.gameState.player1.isGuarding = false;
+    window.gameState.player1.isAttacking = false;
+    window.gameState.player2.isJumping = false;
+    window.gameState.player2.isGuarding = false;
+    window.gameState.player2.isAttacking = false;
+
+    // Reset keys
+    Object.keys(window.gameState.keys.player1).forEach(key => window.gameState.keys.player1[key] = false);
+    Object.keys(window.gameState.keys.player2).forEach(key => window.gameState.keys.player2[key] = false);
+
+    // Update visuals
+    if (window.gameState.player1.element) {
+        window.gameState.player1.element.style.left = window.gameState.player1.position + 'px';
+        resetPlayerIdleImage(window.gameState.player1);
+    }
+    if (window.gameState.player2.element) {
+        window.gameState.player2.element.style.left = window.gameState.player2.position + 'px';
+        resetPlayerIdleImage(window.gameState.player2);
+    }
 }

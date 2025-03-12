@@ -69,6 +69,9 @@
             </div>
         </div>
         
+        <!-- Bar Background -->
+        <div class="bar-background"></div>
+        
         <div id="fightArena">
             <!-- Background container will be added here by JavaScript -->
             <div id="player1" class="fighter">
@@ -88,26 +91,54 @@
             <div class="control-instructions">
                 <div class="player1-controls">
                     <h3>PLAYER 1</h3>
-                    <p>W - Jump</p>
-                    <p>A - Move Left</p>
-                    <p>D - Move Right</p>
-                    <p>S - Guard</p>
-                    <p>F - Punch</p>
-                    <p>G - Kick</p>
-                    <p>Q - Dash</p>
-                    <p>E - Special Move</p>
+                    <div class="controls-container">
+                        <div class="basic-controls">
+                            <p>W - Jump</p>
+                            <p>A - Move Left</p>
+                            <p>D - Move Right</p>
+                            <p>S - Guard</p>
+                            <p>F - Punch</p>
+                            <p>G - Kick</p>
+                            <p class="special-move">Shift + A/D - Shadow Shift</p>
+                        </div>
+                        <div class="move-description">
+                            <p>Master the art of deception!</p>
+                            <ul>
+                                <li>Creates a phantom clone</li>
+                                <li>Perfect for mind games</li>
+                                <li>Heal 30% on clone hit</li>
+                                <li>10s cooldown</li>
+                                <li>Costs 30% stamina</li>
+                            </ul>
+                            <p class="tip">TIP: Use to bait attacks!</p>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="player2-controls">
                     <h3>PLAYER 2</h3>
-                    <p>↑ - Jump</p>
-                    <p>← - Move Left</p>
-                    <p>→ - Move Right</p>
-                    <p>↓ - Guard</p>
-                    <p>K - Punch</p>
-                    <p>L - Kick</p>
-                    <p>O - Dash</p>
-                    <p>P - Special Move</p>
+                    <div class="controls-container">
+                        <div class="basic-controls">
+                            <p>↑ - Jump</p>
+                            <p>← - Move Left</p>
+                            <p>→ - Move Right</p>
+                            <p>↓ - Guard</p>
+                            <p>K - Punch</p>
+                            <p>L - Kick</p>
+                            <p class="special-move">Ctrl + ←/→ - Shadow Shift</p>
+                        </div>
+                        <div class="move-description">
+                            <p>Unleash the power of illusion!</p>
+                            <ul>
+                                <li>Creates a phantom clone</li>
+                                <li>Perfect for mind games</li>
+                                <li>Heal 30% on clone hit</li>
+                                <li>10s cooldown</li>
+                                <li>Costs 30% stamina</li>
+                            </ul>
+                            <p class="tip">TIP: Bait and counter!</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -185,6 +216,10 @@
             </button>
         </div>
     </div>
+
+    <!-- Victory Audio Elements -->
+    <audio id="victoryMusic" src="../assests/audio/announcer/victory.mp3" preload="auto"></audio>
+    <audio id="victoryCheer" src="../assests/audio/ambience/cheer2_charecters.mp3" preload="auto"></audio>
 
     <style>
         .settings-overlay {
@@ -331,6 +366,210 @@
         .back-to-settings:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .special-move {
+            color: #ff3333;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 20px;
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+
+        .move-description {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #ff4444;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .move-description p {
+            margin: 5px 0;
+            color: #fff;
+        }
+
+        .move-description ul {
+            list-style-type: none;
+            padding-left: 15px;
+            margin: 10px 0;
+        }
+
+        .move-description li {
+            color: #ddd;
+            margin: 5px 0;
+            position: relative;
+            padding-left: 15px;
+        }
+
+        .move-description li:before {
+            content: "•";
+            color: #ff4444;
+            position: absolute;
+            left: 0;
+        }
+
+        .tip {
+            color: #ffcc00 !important;
+            font-style: italic;
+            font-weight: bold;
+            margin-top: 10px !important;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+
+        .control-instructions {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            gap: 20px;
+            max-height: 200px;
+        }
+
+        .player1-controls, .player2-controls {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .controls-container {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 15px;
+            align-items: start;
+        }
+
+        .basic-controls {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #ff4444;
+        }
+
+        .basic-controls p {
+            margin: 3px 0;
+            color: #fff;
+        }
+
+        .move-description {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #ff4444;
+            border-radius: 5px;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+
+        .move-description p {
+            margin: 3px 0;
+            color: #fff;
+        }
+
+        .move-description ul {
+            list-style-type: none;
+            padding-left: 15px;
+            margin: 5px 0;
+        }
+
+        .move-description li {
+            color: #ddd;
+            margin: 3px 0;
+            position: relative;
+            padding-left: 15px;
+            font-size: 0.9em;
+        }
+
+        .move-description li:before {
+            content: "•";
+            color: #ff4444;
+            position: absolute;
+            left: 0;
+        }
+
+        .special-move {
+            color: #ff3333;
+            font-weight: bold;
+            font-size: 1em;
+            margin-top: 5px;
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+
+        .tip {
+            color: #ffcc00 !important;
+            font-style: italic;
+            font-weight: bold;
+            margin-top: 5px !important;
+            font-size: 0.9em;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+
+        h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        .bar-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background-image: url('../assests/maps/bar.gif');
+            background-size: cover;
+            background-position: top center;
+            background-repeat: no-repeat;
+            z-index: 1;
+            margin: 0;
+            padding: 0;
+        }
+
+        #fightArena {
+            position: relative;
+            z-index: 2;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        #fightScreen {
+            position: relative;
+            padding: 0;
+            margin: 0;
+        }
+
+        .health-bars {
+            position: relative;
+            z-index: 3;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        #fightHeader {
+            position: relative;
+            z-index: 3;
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .winner-announcement {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            color: #fff;
+            text-shadow: 0 0 20px #fff,
+                         0 0 30px #ff0000,
+                         0 0 40px #ff0000;
+            z-index: 999;
+            animation: pulse 2s infinite;
         }
     </style>
 
@@ -726,6 +965,126 @@ Map: ${selectedMap || 'Not set'}`);
         // Load saved volumes when the page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadSavedVolumes();
+        });
+
+        // Victory audio elements
+        const victoryMusic = new Audio('../assests/audio/announcer/victory.mp3');
+        victoryMusic.volume = 0.7;
+        const crowdCheer = new Audio('../assests/audio/ambience/cheer2_charecters.mp3');
+        crowdCheer.volume = 0.5;
+
+        // Function to create a single particle
+        function createParticle(x, y, color) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                width: 10px;
+                height: 10px;
+                background: ${color};
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 1000;
+            `;
+
+            // Random direction and speed
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 5 + Math.random() * 15;
+            const vx = Math.cos(angle) * velocity;
+            const vy = Math.sin(angle) * velocity;
+
+            document.body.appendChild(particle);
+
+            let posX = x;
+            let posY = y;
+            let opacity = 1;
+            let scale = 1;
+
+            function animate() {
+                if (opacity <= 0) {
+                    particle.remove();
+                    return;
+                }
+
+                posX += vx;
+                posY += vy;
+                opacity -= 0.02;
+                scale -= 0.01;
+
+                particle.style.transform = `translate(${posX - x}px, ${posY - y}px) scale(${scale})`;
+                particle.style.opacity = opacity;
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Function to create victory particles
+        function createVictoryParticles() {
+            const colors = ['#ff0000', '#ff4444', '#ffff00', '#ffffff'];
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            // Initial burst
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+                }, i * 20);
+            }
+
+            // Secondary bursts
+            for (let j = 0; j < 3; j++) {
+                setTimeout(() => {
+                    for (let i = 0; i < 20; i++) {
+                        createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+                    }
+                }, 1000 + j * 500);
+            }
+        }
+
+        // Function to show winner announcement
+        function showWinnerAnnouncement(winner) {
+            const announcement = document.createElement('div');
+            announcement.className = 'winner-announcement';
+            announcement.textContent = `${winner} WINS!`;
+            announcement.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 72px;
+                color: #fff;
+                text-shadow: 0 0 20px #fff,
+                             0 0 30px #ff0000,
+                             0 0 40px #ff0000;
+                font-weight: bold;
+                text-align: center;
+                z-index: 1001;
+                animation: pulse 2s infinite;
+            `;
+
+            document.body.appendChild(announcement);
+
+            // Remove after overlay appears
+            setTimeout(() => {
+                announcement.remove();
+            }, 3000);
+        }
+
+        // Listen for game over event
+        window.addEventListener('gameOver', (event) => {
+            // Play victory sounds
+            victoryMusic.play();
+            crowdCheer.play();
+
+            // Create particle effects
+            createVictoryParticles();
+
+            // Show winner announcement
+            showWinnerAnnouncement(event.detail.winner);
         });
     </script>
     

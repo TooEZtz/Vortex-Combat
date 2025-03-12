@@ -902,7 +902,7 @@ function attackPlayer(player, attackType) {
     if (player.isJumping || player.isGuarding) {
         return;
     }
-
+    
     // Set attacking state
     player.isAttacking = true;
     player.attackType = attackType;
@@ -928,23 +928,23 @@ function attackPlayer(player, attackType) {
     const attackRange = 70; // Basic attack range of 50px
     
     if (distance <= attackRange) {
-        if (defender.isGuarding) {
-            showBlockedEffect(defender);
-        } else {
+                if (defender.isGuarding) {
+                    showBlockedEffect(defender);
+                } else {
             // Apply damage based on attack type
             const damage = attackType === 'punch' ? 5 : 7;
             applyDamage(defender, damage);
-            showHitEffect(defender);
-            showAttackText(player, attackType);
-        }
-    }
-    
-    // Reset to idle after attack
-    setTimeout(() => {
-        resetPlayerIdleImage(player);
-        player.isAttacking = false;
-        player.attackType = null;
-    }, 250);
+                    showHitEffect(defender);
+                    showAttackText(player, attackType);
+                }
+            }
+            
+            // Reset to idle after attack
+            setTimeout(() => {
+                    resetPlayerIdleImage(player);
+                    player.isAttacking = false;
+                    player.attackType = null;
+            }, 250);
 }
 
 // Helper function to get attack animation path
@@ -1041,122 +1041,122 @@ function applyDamage(player, amount) {
             mapMusic.currentTime = 0;
         }
 
-        // Create game over overlay
-        const gameOverOverlay = document.createElement('div');
-        gameOverOverlay.id = 'gameOverOverlay';
-        gameOverOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-family: 'Arial', sans-serif;
-        `;
+        // Determine winner
+        const winner = player === window.gameState.player1 ? 'PLAYER 2' : 'PLAYER 1';
 
-        // Create winner announcement
-        const winnerText = document.createElement('div');
-        winnerText.textContent = `PLAYER ${player === window.gameState.player1 ? '2' : '1'} WINS!`;
-        winnerText.style.cssText = `
-            font-size: 72px;
-            color: #fff;
-            text-shadow: 0 0 20px #fff,
-                         0 0 30px #ff0000,
-                         0 0 40px #ff0000;
-            margin-bottom: 50px;
-            font-weight: bold;
-            text-align: center;
-        `;
-        gameOverOverlay.appendChild(winnerText);
+        // Dispatch game over event
+        const gameOverEvent = new CustomEvent('gameOver', {
+            detail: {
+                winner: winner
+            }
+        });
+        window.dispatchEvent(gameOverEvent);
 
-        // Create container for buttons
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-        `;
-
-        // Create buttons
-        const buttons = [
-            { 
-                text: 'REPLAY', 
-                href: 'javascript:void(0)', 
-                onClick: () => {
-                    sessionStorage.setItem('isReplay', 'true');
-                    location.reload();
-                }
-            },
-            { text: 'CHANGE FIGHTERS', href: 'playerselection.html' },
-            { text: 'CHANGE MAP', href: 'maps.html' },
-            { text: 'BACK TO MENU', href: 'index.html' }
-        ];
-
-        buttons.forEach(({ text, href, onClick }) => {
-            const button = document.createElement('button');
-            button.textContent = text;
-            button.style.cssText = `
-                padding: 15px 30px;
-                font-size: 24px;
-                background: linear-gradient(to bottom, #ff3333, #cc0000);
-                color: white;
-                border: 2px solid #ff4444;
-                border-radius: 5px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                min-width: 300px;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        // Create game over overlay after a short delay
+        setTimeout(() => {
+            const gameOverOverlay = document.createElement('div');
+            gameOverOverlay.id = 'gameOverOverlay';
+            gameOverOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                font-family: 'Arial', sans-serif;
             `;
 
-            // Add hover effect
-            button.onmouseover = () => {
-                button.style.transform = 'scale(1.05)';
-                button.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.4)';
-                if (window.SoundManager) {
-                    window.SoundManager.playHoverSound();
-                }
-            };
-            button.onmouseout = () => {
-                button.style.transform = 'scale(1)';
-                button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-            };
+            // Create container for buttons
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                align-items: center;
+                margin-top: 50px;
+            `;
 
-            // Add click handler with sound
-            button.onclick = () => {
-                if (window.SoundManager) {
-                    window.SoundManager.playClickSound();
-                }
-                setTimeout(() => {
-                    if (onClick) {
-                        onClick();
-                    } else {
-                        window.location.href = href;
+            // Create buttons
+            const buttons = [
+                { 
+                    text: 'REPLAY', 
+                    href: 'javascript:void(0)', 
+                    onClick: () => {
+                        sessionStorage.setItem('isReplay', 'true');
+                        location.reload();
                     }
-                }, 300);
-            };
+                },
+                { text: 'CHANGE FIGHTERS', href: 'playerselection.html' },
+                { text: 'CHANGE MAP', href: 'maps.html' },
+                { text: 'BACK TO MENU', href: 'index.html' }
+            ];
 
-            buttonsContainer.appendChild(button);
-        });
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.textContent = button.text;
+                btn.style.cssText = `
+                    padding: 15px 30px;
+                    font-size: 24px;
+                    background: linear-gradient(to bottom, #ff3333, #cc0000);
+                    color: white;
+                    border: 2px solid #ff4444;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    min-width: 300px;
+                    margin: 10px;
+                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+                `;
 
-        gameOverOverlay.appendChild(buttonsContainer);
-        document.body.appendChild(gameOverOverlay);
+                if (button.onClick) {
+                    btn.onclick = button.onClick;
+                } else {
+                    btn.onclick = () => window.location.href = button.href;
+                }
 
-        // Add fade-in animation
-        gameOverOverlay.animate([
-            { opacity: 0 },
-            { opacity: 1 }
-        ], {
-            duration: 500,
-            easing: 'ease-out',
-            fill: 'forwards'
-        });
+                btn.onmouseover = () => {
+                    btn.style.transform = 'scale(1.05)';
+                    if (window.SoundManager) {
+                        window.SoundManager.playHoverSound();
+                    }
+                };
+
+                btn.onmouseout = () => {
+                    btn.style.transform = 'scale(1)';
+                };
+
+                btn.onmousedown = () => {
+                    if (window.SoundManager) {
+                        window.SoundManager.playClickSound();
+                    }
+                };
+
+                buttonsContainer.appendChild(btn);
+            });
+
+            gameOverOverlay.appendChild(buttonsContainer);
+
+            // Add fade-in animation
+            gameOverOverlay.animate([
+                { opacity: 0 },
+                { opacity: 1 }
+            ], {
+                duration: 500,
+                easing: 'ease-out',
+                fill: 'forwards'
+            });
+
+            // Add overlay after particle effects and winner announcement
+            setTimeout(() => {
+                document.body.appendChild(gameOverOverlay);
+            }, 2000); // Add overlay after 2 seconds
+        }, 1000); // Start creating overlay after 1 second
     }
 }
 

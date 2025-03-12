@@ -1334,3 +1334,112 @@ body {
     opacity: 1;
     pointer-events: auto;
 }
+
+/* Overtime Timer Effect */
+.overtime-timer {
+    animation: overtimeFlash 1s infinite;
+    font-size: 42px !important;
+    text-shadow: 0 0 20px #ff0000;
+}
+
+@keyframes overtimeFlash {
+    0% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+    50% { color: #ffffff; text-shadow: 0 0 30px #ff0000; }
+    100% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+}
+
+/* Overtime Announcement */
+.overtime-announcement {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 96px;
+    font-weight: bold;
+    color: #ff0000;
+    text-shadow: 0 0 20px #ff0000,
+                 0 0 40px #ff0000;
+    z-index: 1000;
+    animation: overtimeAnnounce 2s ease-out forwards;
+}
+
+@keyframes overtimeAnnounce {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* Showdown Overlay */
+.showdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+    animation: overlayFade 1s ease-in forwards;
+}
+
+@keyframes overlayFade {
+    from { background: rgba(0, 0, 0, 0); }
+    to { background: rgba(0, 0, 0, 0.7); }
+}
+
+/* Final Judgment Text */
+.judgment-announcement {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 84px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffd700,
+                 0 0 40px #ff0000;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    animation: judgmentPulse 2s infinite;
+}
+
+@keyframes judgmentPulse {
+    0% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ffd700, 0 0 40px #ff0000; }
+    50% { transform: translate(-50%, -50%) scale(1.1); text-shadow: 0 0 30px #ffd700, 0 0 60px #ff0000; }
+    100% { transform: translate(-50%, -50%) scale(1); text-shadow: 0 0 20px #ffd700, 0 0 40px #ff0000; }
+}
+
+/* Health Drain Effect */
+.health-bar.draining {
+    animation: healthDrain 0.5s infinite;
+    background: linear-gradient(90deg, 
+        #ff0000 0%,
+        #990000 50%,
+        #ff0000 100%
+    );
+}
+
+@keyframes healthDrain {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+    100% { filter: brightness(1); }
+}
+
+/* Victory by Decision Text */
+.victory-by-decision {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: #ffd700;
+    text-shadow: 0 0 15px #ffd700;
+    opacity: 0;
+    animation: decisionFade 2s forwards;
+}
+
+@keyframes decisionFade {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}

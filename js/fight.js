@@ -1655,46 +1655,46 @@ function setupGameTimer() {
     };
 
     const startTimer = () => {
-  const gameTimer = setInterval(() => {
+        const gameTimer = setInterval(() => {
             // Only count down if round is still active and not paused
             if (window.gameState && window.gameState.roundStarted && !window.gameState.roundPaused) {
-      timeLeft--;
+                timeLeft--;
+                
                 // Update timer display with leading zero
                 if (timerElement) {
                     timerElement.textContent = timeLeft.toString().padStart(2, '0');
                 }
-      
+                
                 // Check if time is up
-      if (timeLeft <= 0) {
+                if (timeLeft <= 0) {
                     if (!isOvertime) {
-                        // Check if players have equal health
-                        if (window.gameState.player1.health === window.gameState.player2.health) {
-                            // Start overtime based on round number
-                            isOvertime = true;
-                            if (window.gameState.currentRound === 3) {
-                                timeLeft = 30; // 30 seconds overtime for round 3
-                            } else {
-                                timeLeft = 15; // 15 seconds overtime for rounds 1 and 2
-                            }
-                            // Update timer display
-                            timerElement.textContent = timeLeft.toString().padStart(2, '0');
-                            timerElement.style.color = '#ff0000'; // Make timer red during overtime
-                            return; // Continue the timer
-                        }
+                        // Start overtime
+                        isOvertime = true;
+                        timeLeft = 30; // 30 seconds overtime
+                        
+                        // Create and show the OVERTIME text
+                        const overtimeText = document.createElement('div');
+                        overtimeText.className = 'overtime-announcement';
+                        overtimeText.textContent = 'OVERTIME';
+                        document.body.appendChild(overtimeText);
+                        
+                        // Play overtime sound
+                        const overtimeSound = new Audio('../assests/audio/announcer/overtime.mp3');
+                        overtimeSound.volume = 0.8;
+                        overtimeSound.play().catch(e => console.warn('Overtime sound play failed:', e));
+                        
+                        // Make timer red and flashing during overtime
+                        timerElement.classList.add('overtime-timer');
+                        
+                        return; // Continue the timer
                     }
                     
-                    // Time is up, determine winner
-          clearInterval(gameTimer);
-                    const roundWinner = window.gameState.player1.health > window.gameState.player2.health ? 'player1' : 'player2';
-                    handleRoundEnd(roundWinner);
-                    
-                    // Reset overtime styling
-                    if (isOvertime) {
-                        timerElement.style.color = '#fff';
-                    }
+                    // Overtime is over, start the dramatic showdown
+                    clearInterval(gameTimer);
+                    startDramaticShowdown();
                 }
-      }
-  }, 1000);
+            }
+        }, 1000);
 
         // Store the timer reference in gameState
         window.gameState.currentTimer = gameTimer;
@@ -1702,6 +1702,188 @@ function setupGameTimer() {
 
     // Start waiting for round to begin
     waitForStart();
+}
+
+function startDramaticShowdown() {
+    // Pause all game actions
+    window.gameState.roundPaused = true;
+    
+    // Create dramatic overlay
+    const showdownOverlay = document.createElement('div');
+    showdownOverlay.className = 'showdown-overlay';
+    document.body.appendChild(showdownOverlay);
+    
+    // Create and show the FINAL JUDGMENT text
+    const judgmentText = document.createElement('div');
+    judgmentText.className = 'judgment-announcement';
+    judgmentText.textContent = 'FINAL JUDGMENT';
+    document.body.appendChild(judgmentText);
+    
+    // Play dramatic sound
+    const judgmentSound = new Audio('../assests/audio/announcer/final_judgment.mp3');
+    judgmentSound.volume = 0.8;
+    judgmentSound.play().catch(e => console.warn('Judgment sound play failed:', e));
+    
+    // Start the health drain sequence after 2 seconds
+    setTimeout(() => {
+        // Remove the judgment text with fade out
+        judgmentText.style.opacity = '0';
+        setTimeout(() => judgmentText.remove(), 1000);
+        
+        // Get initial health values
+        const player1Health = window.gameState.player1.health;
+        const player2Health = window.gameState.player2.health;
+        
+        // Add draining effect to health bars
+        window.gameState.player1.healthBar.classList.add('draining');
+        window.gameState.player2.healthBar.classList.add('draining');
+        
+        // Calculate drain rate based on health difference
+        const drainInterval = 50; // Drain every 50ms
+        const drainAmount = 1; // Drain 1 health per interval
+        
+        let currentPlayer1Health = player1Health;
+        let currentPlayer2Health = player2Health;
+        
+        // Start dramatic health drain
+        const drainTimer = setInterval(() => {
+            // Drain health
+            currentPlayer1Health = Math.max(0, currentPlayer1Health - drainAmount);
+            currentPlayer2Health = Math.max(0, currentPlayer2Health - drainAmount);
+            
+            // Update health bars with dramatic effect
+            window.gameState.player1.health = currentPlayer1Health;
+            window.gameState.player2.health = currentPlayer2Health;
+            updateHealthBar(window.gameState.player1);
+            updateHealthBar(window.gameState.player2);
+            
+            // Play drain sound
+            const drainSound = new Audio('../assests/audio/FightSFX/health_drain.mp3');
+            drainSound.volume = 0.3;
+            drainSound.play().catch(e => console.warn('Drain sound play failed:', e));
+            
+            // Check if both players have reached 0 or same health
+            if (currentPlayer1Health === 0 && currentPlayer2Health === 0) {
+                clearInterval(drainTimer);
+                
+                // Remove draining effect
+                window.gameState.player1.healthBar.classList.remove('draining');
+                window.gameState.player2.healthBar.classList.remove('draining');
+                
+                // Declare a draw
+                const gameOverEvent = new CustomEvent('gameOver', {
+                    detail: {
+                        winner: 'DRAW',
+                        byDecision: true
+                    }
+                });
+                window.dispatchEvent(gameOverEvent);
+                
+                // Show menu overlay after a short delay
+                setTimeout(createGameOverOverlay, 2000);
+            }
+            // Check if either player has reached 0
+            else if (currentPlayer1Health === 0 || currentPlayer2Health === 0) {
+                clearInterval(drainTimer);
+                
+                // Remove draining effect
+                window.gameState.player1.healthBar.classList.remove('draining');
+                window.gameState.player2.healthBar.classList.remove('draining');
+                
+                // Determine winner
+                const winner = currentPlayer1Health > currentPlayer2Health ? 'PLAYER 1' : 'PLAYER 2';
+                
+                // Trigger victory sequence
+                const gameOverEvent = new CustomEvent('gameOver', {
+                    detail: {
+                        winner: winner,
+                        byDecision: true
+                    }
+                });
+                window.dispatchEvent(gameOverEvent);
+                
+                // Show menu overlay after a short delay
+                setTimeout(createGameOverOverlay, 2000);
+            }
+        }, drainInterval);
+    }, 2000);
+}
+
+// Function to create game over overlay
+function createGameOverOverlay() {
+    const gameOverOverlay = document.createElement('div');
+    gameOverOverlay.id = 'gameOverOverlay';
+    gameOverOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        font-family: 'Arial', sans-serif;
+    `;
+
+    // Create container for buttons
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+        margin-top: 50px;
+    `;
+
+    // Create buttons
+    const buttons = [
+        { 
+            text: 'REPLAY', 
+            href: 'javascript:void(0)', 
+            onClick: () => {
+                sessionStorage.setItem('isReplay', 'true');
+                location.reload();
+            }
+        },
+        { text: 'CHANGE FIGHTERS', href: 'playerselection.html' },
+        { text: 'CHANGE MAP', href: 'maps.html' },
+        { text: 'BACK TO MENU', href: 'index.html' }
+    ];
+
+    buttons.forEach(button => {
+        const buttonElement = document.createElement('a');
+        buttonElement.href = button.href;
+        buttonElement.textContent = button.text;
+        if (button.onClick) {
+            buttonElement.onclick = button.onClick;
+        }
+        buttonElement.style.cssText = `
+            padding: 15px 30px;
+            background: linear-gradient(to bottom, #ff3333, #cc0000);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 24px;
+            margin: 10px;
+            min-width: 250px;
+            text-align: center;
+            transition: transform 0.2s;
+            cursor: pointer;
+        `;
+        buttonElement.onmouseover = () => {
+            buttonElement.style.transform = 'scale(1.1)';
+        };
+        buttonElement.onmouseout = () => {
+            buttonElement.style.transform = 'scale(1)';
+        };
+        buttonsContainer.appendChild(buttonElement);
+    });
+
+    gameOverOverlay.appendChild(buttonsContainer);
+    document.body.appendChild(gameOverOverlay);
 }
 
 function animateFightText() {
@@ -3178,3 +3360,93 @@ function resetRound() {
         resetPlayerIdleImage(window.gameState.player2);
     }
 }
+
+// Listen for game over event
+window.addEventListener('gameOver', (event) => {
+    // Play victory sounds
+    if (event.detail.byDecision) {
+        if (event.detail.winner === 'DRAW') {
+            // Play draw sound if available, or use a default sound
+            const drawSound = new Audio('../assests/audio/announcer/draw.mp3');
+            drawSound.volume = 0.7;
+            drawSound.play().catch(e => console.warn('Draw sound play failed:', e));
+            
+            // Create "DRAW" text
+            const drawText = document.createElement('div');
+            drawText.className = 'winner-announcement';
+            drawText.textContent = 'DRAW';
+            document.body.appendChild(drawText);
+            
+            // Remove text after 3 seconds
+            setTimeout(() => {
+                drawText.style.opacity = '0';
+                setTimeout(() => drawText.remove(), 1000);
+            }, 3000);
+        } else {
+            // Play special decision victory music
+            const decisionMusic = new Audio('../assests/audio/announcer/victory_by_decision.mp3');
+            decisionMusic.volume = 0.7;
+            decisionMusic.play().catch(e => console.warn('Decision music play failed:', e));
+            
+            // Create "Victory by Decision" text
+            const decisionText = document.createElement('div');
+            decisionText.className = 'victory-by-decision';
+            decisionText.textContent = 'VICTORY BY DECISION';
+            document.body.appendChild(decisionText);
+            
+            // Remove text after 3 seconds
+            setTimeout(() => {
+                decisionText.style.opacity = '0';
+                setTimeout(() => decisionText.remove(), 1000);
+            }, 3000);
+        }
+    } else {
+        victoryMusic.play();
+    }
+    
+    // Always play crowd cheer
+    crowdCheer.play();
+
+    // Create particle effects with different colors for decision victory or draw
+    const colors = event.detail.winner === 'DRAW' 
+        ? ['#ffffff', '#cccccc', '#999999', '#666666'] // Gray theme for draw
+        : event.detail.byDecision 
+            ? ['#ffd700', '#ffff00', '#ffffff', '#ffa500'] // Gold theme for decision
+            : ['#ff0000', '#ff4444', '#ffff00', '#ffffff']; // Regular victory colors
+    
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+
+    // Initial burst
+    for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+            createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+        }, i * 20);
+    }
+
+    // Secondary bursts
+    for (let j = 0; j < 3; j++) {
+        setTimeout(() => {
+            for (let i = 0; i < 20; i++) {
+                createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+            }
+        }, 1000 + j * 500);
+    }
+
+    // Show winner announcement with special styling for decision victory or draw
+    if (event.detail.winner !== 'DRAW') {
+        const announcement = document.createElement('div');
+        announcement.className = 'winner-announcement';
+        announcement.textContent = `${event.detail.winner} WINS!`;
+        if (event.detail.byDecision) {
+            announcement.style.color = '#ffd700';
+            announcement.style.textShadow = '0 0 20px #ffd700, 0 0 40px #ffd700';
+        }
+        document.body.appendChild(announcement);
+
+        // Remove announcement after overlay appears
+        setTimeout(() => {
+            announcement.remove();
+        }, 3000);
+    }
+});

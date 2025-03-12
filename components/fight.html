@@ -511,12 +511,13 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 150px;
+            height: 100vh;
             background-image: url('../assests/maps/bar.gif');
             background-size: cover;
-            background-position: top center;
+       
             background-repeat: no-repeat;
-            z-index: 1;
+            z-index: -1000;
+            filter: brightness(50%);
             margin: 0;
             padding: 0;
         }
@@ -1045,46 +1046,71 @@ Map: ${selectedMap || 'Not set'}`);
             }
         }
 
-        // Function to show winner announcement
-        function showWinnerAnnouncement(winner) {
-            const announcement = document.createElement('div');
-            announcement.className = 'winner-announcement';
-            announcement.textContent = `${winner} WINS!`;
-            announcement.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 72px;
-                color: #fff;
-                text-shadow: 0 0 20px #fff,
-                             0 0 30px #ff0000,
-                             0 0 40px #ff0000;
-                font-weight: bold;
-                text-align: center;
-                z-index: 1001;
-                animation: pulse 2s infinite;
-            `;
-
-            document.body.appendChild(announcement);
-
-            // Remove after overlay appears
-            setTimeout(() => {
-                announcement.remove();
-            }, 3000);
-        }
-
         // Listen for game over event
         window.addEventListener('gameOver', (event) => {
             // Play victory sounds
-            victoryMusic.play();
+            if (event.detail.byDecision) {
+                // Play special decision victory music
+                const decisionMusic = new Audio('../assests/audio/announcer/victory_by_decision.mp3');
+                decisionMusic.volume = 0.7;
+                decisionMusic.play().catch(e => console.warn('Decision music play failed:', e));
+                
+                // Create "Victory by Decision" text
+                const decisionText = document.createElement('div');
+                decisionText.className = 'victory-by-decision';
+                decisionText.textContent = 'VICTORY BY DECISION';
+                document.body.appendChild(decisionText);
+                
+                // Remove text after 3 seconds
+                setTimeout(() => {
+                    decisionText.style.opacity = '0';
+                    setTimeout(() => decisionText.remove(), 1000);
+                }, 3000);
+            } else {
+                victoryMusic.play();
+            }
+            
+            // Always play crowd cheer
             crowdCheer.play();
 
-            // Create particle effects
-            createVictoryParticles();
+            // Create particle effects with different colors for decision victory
+            const colors = event.detail.byDecision 
+                ? ['#ffd700', '#ffff00', '#ffffff', '#ffa500'] // Gold theme for decision
+                : ['#ff0000', '#ff4444', '#ffff00', '#ffffff']; // Regular victory colors
+            
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
 
-            // Show winner announcement
-            showWinnerAnnouncement(event.detail.winner);
+            // Initial burst
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+                }, i * 20);
+            }
+
+            // Secondary bursts
+            for (let j = 0; j < 3; j++) {
+                setTimeout(() => {
+                    for (let i = 0; i < 20; i++) {
+                        createParticle(centerX, centerY, colors[Math.floor(Math.random() * colors.length)]);
+                    }
+                }, 1000 + j * 500);
+            }
+
+            // Show winner announcement with special styling for decision victory
+            const announcement = document.createElement('div');
+            announcement.className = 'winner-announcement';
+            announcement.textContent = `${event.detail.winner} WINS!`;
+            if (event.detail.byDecision) {
+                announcement.style.color = '#ffd700';
+                announcement.style.textShadow = '0 0 20px #ffd700, 0 0 40px #ffd700';
+            }
+            document.body.appendChild(announcement);
+
+            // Remove announcement after overlay appears
+            setTimeout(() => {
+                announcement.remove();
+            }, 3000);
         });
     </script>
     

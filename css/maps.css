@@ -4,7 +4,7 @@ body {
   font-family: 'VT323', monospace;
   background-color: #000;
   color: #fff;
-  overflow: hidden;
+  overflow-x: hidden;
   font-size: 18px;
   position: relative;
   min-height: 100vh;
@@ -17,6 +17,10 @@ body {
   padding: 20px;
   background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
   backdrop-filter: blur(5px); /* Blur effect for better text readability */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Background preview container */
@@ -37,23 +41,27 @@ body {
 .select-header {
   text-align: center;
   margin-bottom: 30px;
+  padding: 10px;
 }
 
 .select-header h2 {
-  font-size: 48px;
+  font-size: clamp(28px, 5vw, 48px);
   color: #fff;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+  margin: 0;
 }
 
 .maps-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 30px;
+  gap: clamp(15px, 3vw, 30px);
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   position: relative;
   z-index: 2;
+  flex-grow: 1;
 }
 
 .map-card {
@@ -65,6 +73,9 @@ body {
   transition: all 0.3s ease;
   background: rgba(26, 26, 26, 0.8);
   opacity: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .map-card:hover {
@@ -81,12 +92,16 @@ body {
 
 .map-preview {
   width: 100%;
-  height: 300px;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
   overflow: hidden;
   position: relative;
 }
 
 .map-preview img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -101,25 +116,29 @@ body {
 .map-info {
   padding: 15px;
   background: rgba(0, 0, 0, 0.8);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .map-info h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: clamp(18px, 3vw, 24px);
   color: #fff;
 }
 
 .map-info p {
   margin: 5px 0 0;
   color: #888;
-  font-size: 14px;
+  font-size: clamp(12px, 2vw, 14px);
 }
 
 #startFight {
   display: none; /* Initially hidden */
   margin: 30px auto;
-  padding: 15px 60px;
-  font-size: 36px;
+  padding: clamp(10px, 2vw, 15px) clamp(30px, 5vw, 60px);
+  font-size: clamp(24px, 4vw, 36px);
   background: #ff0000;
   color: white;
   border: none;
@@ -185,7 +204,7 @@ body.map-hover .select-header h2 {
 }
 
 .map-selection-header h2 {
-  font-size: 36px;
+  font-size: clamp(24px, 4vw, 36px);
   font-family: 'Press Start 2P', cursive;
   color: #ff0000;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
@@ -194,7 +213,7 @@ body.map-hover .select-header h2 {
 }
 
 .map-selection-header p {
-  font-size: 18px;
+  font-size: clamp(14px, 2vw, 18px);
   font-family: 'VT323', monospace;
   color: #ccc;
   margin-top: 10px;
@@ -202,7 +221,7 @@ body.map-hover .select-header h2 {
 }
 
 .map-card-title {
-  font-size: 20px;
+  font-size: clamp(16px, 2.5vw, 20px);
   font-family: 'Press Start 2P', cursive;
   color: #fff;
   text-shadow: 0 0 5px rgba(255, 0, 0, 0.7);
@@ -214,8 +233,8 @@ body.map-hover .select-header h2 {
 #startFightButton {
   display: block;
   margin: 30px auto;
-  padding: 15px 30px;
-  font-size: 24px;
+  padding: clamp(10px, 2vw, 15px) clamp(20px, 3vw, 30px);
+  font-size: clamp(18px, 3vw, 24px);
   font-family: 'Press Start 2P', cursive;
   background: linear-gradient(to bottom, #ff0000, #990000);
   color: white;
@@ -232,13 +251,15 @@ body.map-hover .select-header h2 {
 .button-container {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: clamp(10px, 2vw, 20px);
     margin-top: 30px;
+    flex-wrap: wrap;
+    padding: 10px;
 }
 
 .back-button {
-    padding: 15px 30px;
-    font-size: 24px;
+    padding: clamp(10px, 2vw, 15px) clamp(20px, 3vw, 30px);
+    font-size: clamp(18px, 3vw, 24px);
     background: linear-gradient(to bottom, #444, #222);
     color: white;
     border: none;
@@ -252,5 +273,62 @@ body.map-hover .select-header h2 {
 
 .back-button:hover {
     transform: scale(1.1);
-    background: #333;
+    background: linear-gradient(to bottom, #555, #333);
+}
+
+/* Media Queries for better responsiveness */
+@media (max-width: 768px) {
+    .maps-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        padding: 5px;
+    }
+    
+    .button-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .button-container button {
+        width: 80%;
+        max-width: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .maps-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .map-preview {
+        padding-bottom: 66.67%; /* 3:2 aspect ratio for smaller screens */
+    }
+    
+    .select-header {
+        margin-bottom: 15px;
+    }
+    
+    #mapSelect {
+        padding: 10px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+    .map-card:hover {
+        transform: none;
+    }
+    
+    .map-card.selected {
+        transform: scale(1.02);
+    }
+    
+    .map-card:active {
+        transform: scale(0.98);
+    }
+    
+    .button-container button:active {
+        transform: scale(0.95);
+    }
 }

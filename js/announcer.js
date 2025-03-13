@@ -318,6 +318,12 @@ class Announcer {
                     100% { filter: drop-shadow(0 0 0px rgba(255,255,255,0.8)); }
                 }
 
+                @keyframes blinkText {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                    100% { opacity: 1; }
+                }
+
                 @keyframes vsEntrance {
                     0% { transform: scale(3); opacity: 0; }
                     50% { transform: scale(1.2); opacity: 1; }
@@ -454,10 +460,20 @@ class Announcer {
         // Only show continue prompt if we haven't skipped to VS screen
         if (this.introPhase === 1) {
             const roundAnnouncement = document.getElementById('roundAnnouncement');
-            roundAnnouncement.textContent = 'PRESS ANY KEY TO START';
-            roundAnnouncement.style.fontSize = '24px';
-            roundAnnouncement.style.animation = 'blinkText 1s infinite';
-            roundAnnouncement.style.textShadow = '0 0 10px rgba(255,255,255,0.8)';
+            roundAnnouncement.textContent = 'PRESS SPACE BAR TO CONTINUE';
+            roundAnnouncement.style.cssText = `
+                font-size: 24px;
+                color: #fff;
+                position: fixed;
+                bottom: 20%;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                text-align: center;
+                font-family: 'Press Start 2P', cursive;
+                animation: blinkText 1s infinite;
+                text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            `;
             roundAnnouncement.classList.add('active');
         }
     }
@@ -465,6 +481,15 @@ class Announcer {
     async announceRoundStart() {
         // Remove event listeners before playing announcement
         this.removeEventListeners();
+
+        // Hide the round announcement first
+        const roundAnnouncement = document.getElementById('roundAnnouncement');
+        if (roundAnnouncement) {
+            roundAnnouncement.style.opacity = '0';
+            roundAnnouncement.classList.remove('active');
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for fade out
+            roundAnnouncement.style.display = 'none';
+        }
 
         // Show VS screen
         const vsScreen = document.getElementById('vsScreen');

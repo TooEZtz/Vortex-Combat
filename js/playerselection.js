@@ -1,3 +1,253 @@
+// Immediately hide character select to prevent flash
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're coming from the map page
+    const comingFromMap = sessionStorage.getItem('comingFromMap') === 'true';
+    
+    // Only hide character select if not coming from map page
+    if (!comingFromMap) {
+        console.log('Initial check - hiding character select to prevent flash');
+        const charSelect = document.getElementById('charSelect');
+        if (charSelect) {
+            charSelect.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important;';
+        }
+    } else {
+        console.log('Initial check - coming from map page, not hiding character select');
+    }
+}, { once: true });
+
+// Handle interaction overlay transition
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('interaction-overlay');
+    const charSelect = document.getElementById('charSelect');
+    
+    // Check if we're coming from the map page
+    const comingFromMap = sessionStorage.getItem('comingFromMap') === 'true';
+    
+    // Immediately hide the character select screen and ensure it stays hidden
+    // but only if not coming from map page
+    if (charSelect && !comingFromMap) {
+        console.log('Interaction handler - hiding character select (not coming from map)');
+        charSelect.style.display = 'none';
+        charSelect.style.visibility = 'hidden'; // Add extra protection against flashing
+    } else if (charSelect && comingFromMap) {
+        console.log('Interaction handler - keeping character select visible (coming from map)');
+    }
+
+    // Function to handle transition
+    function handleTransition() {
+        if (!overlay || overlay.classList.contains('transitioning')) {
+            return;
+        }
+        
+        // Add transitioning class to start animation
+        overlay.classList.add('transitioning');
+        
+        // After transition animation completes
+        setTimeout(() => {
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+            
+            // Store in session storage that we've seen the intro
+            sessionStorage.setItem('introSeen', 'true');
+            
+            // Show splash screen next
+            createSplashScreen();
+            
+        }, 1500); // Match this with the CSS animation duration
+    }
+
+    // Only show interaction overlay if coming directly from index.html
+    const comingFromIndex = document.referrer.endsWith('index.html');
+    const introSeen = sessionStorage.getItem('introSeen') === 'true';
+    
+    if (overlay) {
+        if (comingFromIndex && !introSeen && !comingFromMap) {
+            // Coming from index.html and haven't seen intro - show the overlay
+            console.log('Showing interactive overlay - coming from index.html');
+            
+            // Event listeners for interaction
+            document.addEventListener('keydown', handleTransition);
+            overlay.addEventListener('click', handleTransition);
+            overlay.addEventListener('touchstart', handleTransition);
+            } else {
+            // Skip the overlay and determine next screen
+            console.log('Skipping interactive overlay');
+            overlay.style.display = 'none';
+            
+            // Determine which screen to show next
+            determineStartScreen();
+        }
+    } else {
+        // No overlay found, determine next screen
+        determineStartScreen();
+    }
+});
+
+// Function to determine which screen to show based on where user is coming from
+function determineStartScreen() {
+    // Check if we're coming from the fight page
+    const comingFromFight = sessionStorage.getItem('comingFromFight') === 'true';
+    
+    // Check if we're coming from the map page
+    const comingFromMap = sessionStorage.getItem('comingFromMap') === 'true';
+    
+    // Check if we've seen the intro
+    const introSeen = sessionStorage.getItem('introSeen') === 'true';
+    
+    // Check if we should skip the splash screen
+    const skipSplash = sessionStorage.getItem('skipSplash') === 'true';
+    
+    console.log('Screen determination flags:', {
+        comingFromMap,
+        comingFromFight,
+        introSeen,
+        skipSplash
+    });
+    
+    // Clear the flags after checking them
+    sessionStorage.removeItem('skipSplash');
+    
+    if (comingFromMap) {
+        // Coming from map page - show character selection directly
+        console.log('Coming from map page - showing character selection directly');
+        // Clear the flag after using it
+        sessionStorage.removeItem('comingFromMap');
+        
+        // Ensure any existing overlays are removed
+        const existingOverlays = document.querySelectorAll('.menu-overlay, .splash-overlay, .interaction-overlay');
+        existingOverlays.forEach(overlay => {
+            console.log('Removing existing overlay:', overlay.className);
+            overlay.remove();
+        });
+        
+        // Show character selection with a slight delay to ensure DOM is ready
+        setTimeout(() => {
+            showCharacterSelection();
+        }, 50);
+    } else if (comingFromFight) {
+        // Coming from fight page - show menu directly
+        console.log('Coming from fight page - showing menu directly');
+        createGameMenu();
+        
+        // Clear the flag
+        sessionStorage.removeItem('comingFromFight');
+    } else if (introSeen && !skipSplash) {
+        // We've seen the intro but not explicitly skipping splash - show splash
+        console.log('Intro seen but not skipping splash - showing splash screen');
+        createSplashScreen();
+    } else {
+        // Default case - show menu
+        console.log('Showing game menu directly');
+        createGameMenu();
+    }
+}
+
+// Function to show character selection screen directly
+function showCharacterSelection() {
+    console.log('Showing character selection screen directly');
+    
+    // Get the character selection screen
+    const charSelect = document.getElementById('charSelect');
+    if (charSelect) {
+        console.log('Found charSelect element, making it visible');
+        
+        // Reset any forced styles with !important flags
+        charSelect.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+        
+        // Hide the interaction overlay if it exists
+        const overlay = document.getElementById('interaction-overlay');
+        if (overlay) {
+            console.log('Hiding interaction overlay');
+            overlay.style.display = 'none';
+        }
+        
+        // Initialize character selection
+        console.log('Initializing character selection');
+        initializeCharacterSelection();
+        
+        // Make sure the back button is visible
+        const backButton = document.querySelector('.back-button');
+        if (backButton) {
+            console.log('Making back button visible');
+            backButton.style.display = 'block';
+        } else {
+            console.warn('Back button not found');
+        }
+        
+        // Ensure the fight button is initially hidden
+        const startFight = document.getElementById('startFight');
+        if (startFight) {
+            console.log('Hiding fight button initially');
+            startFight.style.display = 'none';
+        } else {
+            console.warn('Start fight button not found');
+        }
+        
+        // Play background music if SoundManager is available
+        if (window.SoundManager) {
+            console.log('Playing background music');
+            SoundManager.playBackgroundMusic('characterSelect');
+        }
+        
+        // Force a reflow to ensure the display changes take effect
+        void charSelect.offsetWidth;
+        
+        // Double-check visibility after a short delay
+        setTimeout(() => {
+            if (charSelect.style.display !== 'flex' || 
+                charSelect.style.visibility !== 'visible' || 
+                charSelect.style.opacity !== '1') {
+                console.log('Forcing visibility again after delay');
+                charSelect.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+            }
+        }, 100);
+    } else {
+        console.error('Character selection screen (charSelect) not found!');
+        // Debug what elements are available
+        console.log('Available elements:', document.body.innerHTML);
+    }
+}
+
+// Handle the interaction overlay (legacy code, kept for compatibility)
+document.addEventListener('DOMContentLoaded', function() {
+    const interactionOverlay = document.getElementById('interaction-overlay');
+    
+    // Skip if no overlay or we're not showing it
+    if (!interactionOverlay || interactionOverlay.style.display === 'none') {
+        return;
+    }
+    
+    // Handle the interaction
+    const handleInteraction = function(event) {
+        // Initialize audio context and play background music
+        if (window.SoundManager && typeof window.SoundManager.initialize === 'function') {
+            window.SoundManager.initialize();
+            // Play background music after initialization
+            if (typeof window.SoundManager.playBackgroundMusic === 'function') {
+                window.SoundManager.playBackgroundMusic('playerselection');
+            }
+        }
+        
+        // Add fade out animation
+        interactionOverlay.classList.add('fade-out');
+        
+        // Remove the overlay after animation
+        setTimeout(() => {
+            interactionOverlay.remove();
+            // Remove the event listeners
+            document.removeEventListener('keydown', handleInteraction);
+            document.removeEventListener('click', handleInteraction);
+            document.removeEventListener('touchstart', handleInteraction);
+        }, 1000);
+    };
+    
+    // Add event listeners for multiple types of interaction
+    document.addEventListener('keydown', handleInteraction);
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+});
+
 // Player selection state
 let selectedCharacters = {
     player1Character: null,
@@ -206,13 +456,6 @@ function goToMapSelection() {
         sessionStorage.setItem('player1Character', selectedCharacters.player1Character);
         sessionStorage.setItem('player2Character', selectedCharacters.player2Character);
         
-        console.log('Player selections stored in session storage:',
-            sessionStorage.getItem('player1Character'),
-            sessionStorage.getItem('player2Character'));
-        
-        // Maintain fullscreen state during transition
-        const wasFullscreen = document.fullscreenElement || sessionStorage.getItem('gameInFullscreen');
-        
         // Navigate to maps screen
         window.location.href = 'maps.html';
     }
@@ -325,7 +568,11 @@ function createGameMenu() {
             }, 100);
         }},
         { text: 'CREDITS', action: showCredits },
-        { text: 'ABOUT', action: showAbout }
+        { text: 'ABOUT', action: showAbout },
+        { text: 'FEEDBACK', action: () => {
+            // Open the Google Form in a new tab
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSe78hv1swHFqCRGz6XvNqbnyzDfu61RzZSuB7nJMYHjwnKVkw/viewform?usp=dialog', '_blank');
+        }}
     ];
 
     menuOptions.forEach(option => {
@@ -426,9 +673,13 @@ function startLocalPvP() {
     console.log('Starting Local PvP...');
     
     // Play selection sound
-    const selectSound = new Audio('../assests/audio/menu/menu_select.mp3');
-    selectSound.volume = 0.5;
-    selectSound.play().catch(e => console.warn('Sound play failed:', e));
+    if (window.SoundManager) {
+        SoundManager.playClickSound();
+    } else {
+        const selectSound = new Audio('../assests/audio/menu/menu_select.mp3');
+        selectSound.volume = 0.5;
+        selectSound.play().catch(e => console.warn('Sound play failed:', e));
+    }
 
     // Fade out menu overlay
     const menuOverlay = document.getElementById('gameMenuOverlay');
@@ -442,9 +693,36 @@ function startLocalPvP() {
             // Show character selection screen
             const charSelect = document.getElementById('charSelect');
             if (charSelect) {
-                charSelect.style.display = 'flex';
+                console.log('Showing character selection from menu');
+                
+                // Reset any forced styles with !important flags
+                charSelect.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+                
                 // Initialize character selection
                 initializeCharacterSelection();
+                
+                // Make sure the back button is visible
+                const backButton = document.querySelector('.back-button');
+                if (backButton) {
+                    console.log('Making back button visible');
+                    backButton.style.display = 'block';
+                } else {
+                    console.warn('Back button not found');
+                }
+                
+                // Ensure the fight button is initially hidden
+                const startFight = document.getElementById('startFight');
+                if (startFight) {
+                    console.log('Hiding fight button initially');
+                    startFight.style.display = 'none';
+                } else {
+                    console.warn('Start fight button not found');
+                }
+                
+                // Force a reflow to ensure the display changes take effect
+                void charSelect.offsetWidth;
+                
+                console.log('Character selection screen displayed');
             } else {
                 console.error('Character selection screen not found');
             }
@@ -759,22 +1037,44 @@ function showAbout() {
     document.body.appendChild(aboutOverlay);
 }
 
-// Modify the back button functionality in player selection
-document.querySelector('.back-button')?.addEventListener('click', () => {
-    // Play click sound
-    const clickSound = new Audio('../assests/audio/menu/menu_select.mp3');
-    clickSound.volume = 0.5;
-    clickSound.play().catch(e => console.warn('Sound play failed:', e));
-
-    // Hide character selection
-    const charSelect = document.getElementById('charSelect');
-    if (charSelect) {
-        charSelect.style.display = 'none';
+// Initialize back button functionality
+function initializeBackButton() {
+    console.log('Initializing back button...');
+    
+    // Find the back button
+    const backButton = document.querySelector('.back-button');
+    
+    if (backButton) {
+        console.log('Back button found, adding event listener');
+        
+        // Remove any existing event listeners
+        backButton.replaceWith(backButton.cloneNode(true));
+        
+        // Get the fresh reference
+        const newBackButton = document.querySelector('.back-button');
+        
+        // Add click event listener
+        newBackButton.addEventListener('click', () => {
+            console.log('Back button clicked');
+            
+            // Play click sound
+            if (window.SoundManager) {
+                SoundManager.playClickSound();
+            }
+            
+            // Hide character selection
+            const charSelect = document.getElementById('charSelect');
+            if (charSelect) {
+                charSelect.style.display = 'none';
+            }
+            
+            // Show menu overlay
+            createGameMenu();
+        });
+    } else {
+        console.warn('Back button not found during initialization');
     }
-
-    // Show menu overlay
-    createGameMenu();
-});
+}
 
 function createSplashScreen() {
     const splashOverlay = document.createElement('div');
@@ -853,8 +1153,12 @@ function createSplashParticles() {
     }
 }
 
+// Call this function during character selection initialization
 function initializeCharacterSelection() {
     console.log('Initializing character selection...');
+    
+    // Initialize back button
+    initializeBackButton();
     
     // Set up fight button
     const startFight = document.getElementById('startFight');
@@ -1030,7 +1334,9 @@ function handleSplashTransition() {
     const splashOverlay = document.querySelector('.splash-overlay');
     if (splashOverlay) {
         // Try to play music on transition
-        SoundManager.playBackgroundMusic('characterSelect');
+        if (window.SoundManager) {
+            SoundManager.playBackgroundMusic('characterSelect');
+        }
         
         // Add fade out animation
         splashOverlay.classList.add('fade-out');
@@ -1044,7 +1350,26 @@ function handleSplashTransition() {
 }
 
 // Initialize when the page loads
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM content loaded - initializing page');
+    
+    // Check if we're coming from the map page
+    const comingFromMap = sessionStorage.getItem('comingFromMap') === 'true';
+    
+    // Only hide character select if not coming from map page
+    if (!comingFromMap) {
+        console.log('Not coming from map page - hiding character select initially');
+        const charSelect = document.getElementById('charSelect');
+        if (charSelect) {
+            charSelect.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important;';
+        }
+    } else {
+        console.log('Coming from map page - keeping character select visible');
+    }
+
+    // Initialize character selection
+    initializeCharacterSelection();
+    
     // Initialize SoundManager if it exists
     if (window.SoundManager && !SoundManager.soundsLoaded) {
         console.log('Initializing SoundManager...');
@@ -1072,36 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { once: true });
 
-    // Ensure we're in fullscreen mode if we were before
-    if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.warn('Auto-fullscreen failed:', err);
-        });
-    }
-
-    // Hide character selection initially
-    const charSelect = document.getElementById('charSelect');
-    if (charSelect) {
-        charSelect.style.display = 'none';
-    }
-
-    // Check if we should skip the splash screen
-    const skipSplash = sessionStorage.getItem('skipSplash') === 'true';
-    // Clear the skip flag after checking it
-    sessionStorage.removeItem('skipSplash');
-    
-    // Check if we're coming from index.html
-    const comingFromIndex = document.referrer.endsWith('index.html');
-    
-    if (comingFromIndex && !skipSplash) {
-        // Start with splash screen
-        createSplashScreen();
-    } else {
-        // Skip splash and show menu directly
-        createGameMenu();
-    }
-
-    // Add Enter key event listener
+    // Add Enter key event listener for splash screen
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             const splashOverlay = document.querySelector('.splash-overlay');

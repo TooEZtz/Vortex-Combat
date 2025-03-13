@@ -3,25 +3,29 @@ let mapImages = {}; // Store map images for hover effect
 
 // Maintain fullscreen state
 document.addEventListener('DOMContentLoaded', () => {
-    // Ensure we're in fullscreen mode if we were before
-    if (sessionStorage.getItem('gameInFullscreen') && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.warn('Auto-fullscreen failed:', err);
-        });
+    // Check if we're coming from the fight page
+    const comingFromFight = sessionStorage.getItem('comingFromFight') === 'true';
+    
+    // Check if we're coming from player selection (and not from fight)
+    const comingFromPlayerSelection = !comingFromFight && document.referrer.endsWith('playerselection.html');
+    
+    // Initialize SoundManager if needed
+    if (window.SoundManager && !SoundManager.soundsLoaded) {
+        SoundManager.init();
     }
 
-    // Initialize SoundManager and play music immediately
-    if (window.SoundManager) {
-        if (!SoundManager.soundsLoaded) {
-            SoundManager.init();
+    // Play background music immediately if coming from fight
+    if (comingFromFight) {
+        if (window.SoundManager) {
+            SoundManager.playBackgroundMusic('mapSelect');
         }
-        SoundManager.playBackgroundMusic('mapSelect');
-    }
-
-    // Check if we're coming from player selection
-    const comingFromPlayerSelection = document.referrer.endsWith('playerselection.html');
-    if (comingFromPlayerSelection) {
+    } else if (comingFromPlayerSelection) {
         createControlsOverlay();
+    } else {
+        // Normal initialization from other pages
+        if (window.SoundManager) {
+            SoundManager.playBackgroundMusic('mapSelect');
+        }
     }
 });
 
@@ -35,49 +39,22 @@ document.addEventListener('fullscreenchange', () => {
 function goToPlayerSelection() {
     console.log('Going back to player selection...');
     
+    // Set a flag to indicate we're coming from the map page
+    sessionStorage.setItem('comingFromMap', 'true');
+    
+    // Also set a flag to skip the splash screen
+    sessionStorage.setItem('skipSplash', 'true');
+    
     // Play click sound and navigate after it completes
     if (window.SoundManager) {
-        // Create a new audio element specifically for this navigation
-        const clickSound = new Audio('../assests/audio/button_click.mp3');
-        clickSound.volume = 0.5;
+        // Play the sound
+        SoundManager.playClickSound();
         
-        // When the sound can play, play it and set up navigation
-        clickSound.addEventListener('canplaythrough', function() {
-            console.log('Navigation sound loaded, playing...');
-            
-            // Play the sound
-            const playPromise = clickSound.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('Navigation sound played, waiting before redirect...');
-                    
-                    // Wait for the sound to play a bit before navigating
-                    setTimeout(function() {
-                        console.log('Navigating to player selection...');
-                        window.location.href = 'playerselection.html';
-                    }, 300);
-                }).catch(error => {
-                    console.error('Error playing navigation sound:', error);
-                    // Navigate anyway if sound fails
-                    window.location.href = 'playerselection.html';
-                });
-            } else {
-                // Fallback if play() doesn't return a promise
-                setTimeout(function() {
-                    window.location.href = 'playerselection.html';
-                }, 300);
-            }
-        });
-        
-        // If there's an error loading the sound, navigate anyway
-        clickSound.addEventListener('error', function() {
-            console.error('Error loading navigation sound');
+        // Wait for the sound to play a bit before navigating
+        setTimeout(function() {
+            console.log('Navigating to player selection...');
             window.location.href = 'playerselection.html';
-        });
-        
-        // Start loading the sound
-        clickSound.load();
+        }, 300);
     } else {
         // If SoundManager is not available, just navigate
         window.location.href = 'playerselection.html';
@@ -425,7 +402,7 @@ function createControlsOverlay() {
             <p>🛡️ S - Guard</p>
             <p>👊 F - Punch</p>
             <p>🦶 G - Kick</p>
-            <p>⚡ Shift + A/D - Shadow Shift</p>
+            <p>⚡ Left Shift + A/D - Shadow Shift</p>
         </div>
     `;
 
@@ -440,7 +417,7 @@ function createControlsOverlay() {
             <p>🛡️ ↓ - Guard</p>
             <p>👊 K - Punch</p>
             <p>🦶 L - Kick</p>
-            <p>⚡ Ctrl + ←/→ - Shadow Shift</p>
+            <p>⚡ Right Shift + ←/→ - Shadow Shift</p>
         </div>
     `;
 

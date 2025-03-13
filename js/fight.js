@@ -192,7 +192,8 @@ window.gameState = {
             jump: false,
             guard: false,
             punch: false,
-            kick: false
+            kick: false,
+            leftShift: false  // Add this
         },
         player2: {
             left: false,
@@ -200,7 +201,8 @@ window.gameState = {
             jump: false,
             guard: false,
             punch: false,
-            kick: false
+            kick: false,
+            rightShift: false  // Add this
         }
     },
     gameOver: false,
@@ -421,24 +423,32 @@ function handleKeyDown(e) {
     const currentTime = Date.now();
     const ATTACK_DELAY = 50; // 50ms delay between attacks
     
+    // Track Shift key states
+    if (e.code === 'ShiftLeft') {
+        window.gameState.keys.player1.leftShift = true;
+    }
+    if (e.code === 'ShiftRight') {
+        window.gameState.keys.player2.rightShift = true;
+    }
+    
     // Player 1 controls (WASD + F,G)
     switch(e.key.toLowerCase()) {
         case 'w':
-            if (!window.gameState.keys.player1.jump) {  // Only trigger if not already jumping
+            if (!window.gameState.keys.player1.jump) {
                 window.gameState.keys.player1.jump = true;
             }
             break;
         case 'a':
             window.gameState.keys.player1.left = true;
-            // Check for dash (Shift + A)
-            if (e.shiftKey) {
+            // Check for dash when left shift is held
+            if (window.gameState.keys.player1.leftShift) {
                 performDash(window.gameState.player1, -1);
             }
             break;
         case 'd':
             window.gameState.keys.player1.right = true;
-            // Check for dash (Shift + D)
-            if (e.shiftKey) {
+            // Check for dash when left shift is held
+            if (window.gameState.keys.player1.leftShift) {
                 performDash(window.gameState.player1, 1);
             }
             break;
@@ -467,21 +477,21 @@ function handleKeyDown(e) {
     // Player 2 controls (Arrow keys + K,L)
     switch(e.key) {
         case 'ArrowUp':
-            if (!window.gameState.keys.player2.jump) {  // Only trigger if not already jumping
+            if (!window.gameState.keys.player2.jump) {
                 window.gameState.keys.player2.jump = true;
             }
             break;
         case 'ArrowLeft':
             window.gameState.keys.player2.left = true;
-            // Check for dash (Shift + Left Arrow)
-            if (e.shiftKey) {
+            // Check for dash when right shift is held
+            if (window.gameState.keys.player2.rightShift) {
                 performDash(window.gameState.player2, -1);
             }
             break;
         case 'ArrowRight':
             window.gameState.keys.player2.right = true;
-            // Check for dash (Shift + Right Arrow)
-            if (e.shiftKey) {
+            // Check for dash when right shift is held
+            if (window.gameState.keys.player2.rightShift) {
                 performDash(window.gameState.player2, 1);
             }
             break;
@@ -509,29 +519,33 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
-    // Player 1 controls
+    // Track Shift key states
+    if (e.code === 'ShiftLeft') {
+        window.gameState.keys.player1.leftShift = false;
+    }
+    if (e.code === 'ShiftRight') {
+        window.gameState.keys.player2.rightShift = false;
+    }
+    
+    // Rest of the existing handleKeyUp code...
     switch(e.key.toLowerCase()) {
         case 'w': 
             window.gameState.keys.player1.jump = false; 
             break;
         case 'a': 
             window.gameState.keys.player1.left = false; 
-            // Stop movement sound
             if (window.gameState.player1.movementSound) {
                 window.gameState.player1.movementSound.pause();
                 window.gameState.player1.movementSound = null;
             }
-            // Reset player 1 image when left key is released
             resetPlayerIdleImage(window.gameState.player1);
             break;
         case 'd': 
             window.gameState.keys.player1.right = false; 
-            // Stop movement sound
             if (window.gameState.player1.movementSound) {
                 window.gameState.player1.movementSound.pause();
                 window.gameState.player1.movementSound = null;
             }
-            // Reset player 1 image when right key is released
             resetPlayerIdleImage(window.gameState.player1);
             break;
         case 's': 
@@ -553,22 +567,18 @@ function handleKeyUp(e) {
             break;
         case 'ArrowLeft': 
             window.gameState.keys.player2.left = false; 
-            // Stop movement sound
             if (window.gameState.player2.movementSound) {
                 window.gameState.player2.movementSound.pause();
                 window.gameState.player2.movementSound = null;
             }
-            // Reset player 2 image when left key is released
             resetPlayerIdleImage(window.gameState.player2);
             break;
         case 'ArrowRight': 
             window.gameState.keys.player2.right = false; 
-            // Stop movement sound
             if (window.gameState.player2.movementSound) {
                 window.gameState.player2.movementSound.pause();
                 window.gameState.player2.movementSound = null;
             }
-            // Reset player 2 image when right key is released
             resetPlayerIdleImage(window.gameState.player2);
             break;
         case 'ArrowDown': 
@@ -2120,47 +2130,52 @@ function updateHealthBar(player) {
     // Update health bar with percentage
     if (player.healthBar) {
         const percentage = player.health;
+        
+        // Request animation frame for smoother updates
+        requestAnimationFrame(() => {
+            // Update width with transition
         player.healthBar.style.width = percentage + '%';
         
-        // Update color based on health percentage and add low health effect
+            // Update color based on health percentage and add low health effect
         if (percentage <= 20) {
-            player.healthBar.classList.add('low');
+                player.healthBar.classList.add('low');
         } else {
-            player.healthBar.classList.remove('low');
-        }
-        
-        // Add damage flash effect
-        player.healthBar.classList.add('damage');
-        setTimeout(() => {
-            player.healthBar.classList.remove('damage');
-        }, 300);
-        
-        // Update health text with more dramatic formatting
-        player.healthBar.textContent = `${Math.round(percentage)}%`;
-
-        // Calculate opacity based on missing health (100% - current health%)
-        const opacity = (100 - percentage) / 100; // When health is 100%, opacity will be 0
-        
-        // Update blood overlay opacity based on player health
-        if (player === window.gameState.player1) {
-            const leftOverlay = document.getElementById('left-blood-overlay');
-            if (leftOverlay) {
-                leftOverlay.style.opacity = opacity.toString();
+                player.healthBar.classList.remove('low');
             }
-        } else {
-            const rightOverlay = document.getElementById('right-blood-overlay');
-            if (rightOverlay) {
-                rightOverlay.style.opacity = opacity.toString();
-            }
-        }
+            
+            // Add damage flash effect
+            player.healthBar.classList.add('damage');
+            setTimeout(() => {
+                player.healthBar.classList.remove('damage');
+            }, 500);
+            
+            // Update health text with more dramatic formatting
+            player.healthBar.textContent = `${Math.round(percentage)}%`;
 
-        // Update center blood overlay based on average health
-        const centerOverlay = document.getElementById('center-blood-overlay');
-        if (centerOverlay) {
-            const averageHealth = (window.gameState.player1.health + window.gameState.player2.health) / 2;
-            const centerOpacity = (100 - averageHealth) / 100;
-            centerOverlay.style.opacity = centerOpacity.toString();
-        }
+            // Calculate opacity based on missing health (100% - current health%)
+            const opacity = (100 - percentage) / 100; // When health is 100%, opacity will be 0
+            
+            // Update blood overlay opacity based on player health
+            if (player === window.gameState.player1) {
+                const leftOverlay = document.getElementById('left-blood-overlay');
+                if (leftOverlay) {
+                    leftOverlay.style.opacity = opacity.toString();
+                }
+            } else {
+                const rightOverlay = document.getElementById('right-blood-overlay');
+                if (rightOverlay) {
+                    rightOverlay.style.opacity = opacity.toString();
+                }
+            }
+
+            // Update center blood overlay based on average health
+            const centerOverlay = document.getElementById('center-blood-overlay');
+            if (centerOverlay) {
+                const averageHealth = (window.gameState.player1.health + window.gameState.player2.health) / 2;
+                const centerOpacity = (100 - averageHealth) / 100;
+                centerOverlay.style.opacity = centerOpacity.toString();
+            }
+        });
     }
 }
 
@@ -3474,4 +3489,50 @@ function goToMainMenu() {
     
     // Navigate to player selection page
     window.location.href = 'playerselection.html';
+}
+
+function showGameOverMenu() {
+    const menuItems = [
+        { text: 'REMATCH', action: () => restartMatch() },
+        { text: 'CHANGE FIGHTERS', action: () => {
+            sessionStorage.setItem('comingFromFight', 'true');
+            window.location.href = 'playerselection.html';
+        }},
+        { text: 'CHANGE MAP', action: () => {
+            sessionStorage.setItem('comingFromFight', 'true');
+            window.location.href = 'maps.html';
+        }},
+        { text: 'FEEDBACK', action: () => {
+            // Open the Google Form in a new tab
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSe78hv1swHFqCRGz6XvNqbnyzDfu61RzZSuB7nJMYHjwnKVkw/viewform?usp=dialog', '_blank');
+        }},
+        { text: 'MAIN MENU', action: () => {
+            sessionStorage.removeItem('comingFromFight');
+            window.location.href = 'index.html';
+        }}
+    ];
+    // ... rest of the function ...
+}
+
+function showSettingsMenu() {
+    const menuItems = [
+        { text: 'AUDIO SETTINGS', action: showAudioSettings },
+        { text: 'CHANGE FIGHTERS', action: () => {
+            sessionStorage.setItem('comingFromFight', 'true');
+            window.location.href = 'playerselection.html';
+        }},
+        { text: 'CHANGE MAP', action: () => {
+            sessionStorage.setItem('comingFromFight', 'true');
+            window.location.href = 'maps.html';
+        }},
+        { text: 'FEEDBACK', action: () => {
+            // Open the Google Form in a new tab
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSe78hv1swHFqCRGz6XvNqbnyzDfu61RzZSuB7nJMYHjwnKVkw/viewform?usp=dialog', '_blank');
+        }},
+        { text: 'MAIN MENU', action: () => {
+            sessionStorage.removeItem('comingFromFight');
+            window.location.href = 'index.html';
+        }}
+    ];
+    // ... rest of the function ...
 }

@@ -434,13 +434,14 @@ class Announcer {
         const isPlayer2CurseOr = player2Character === 'curse-or';
         const player2PreviewPath = isPlayer2CurseOr ? 
             '../assests/players/character_1/preview.gif' :
-            '../assests/players/character_2/2_Left_Preview.gif';
+            '../assests/players/character_2/2_Right_Preview.gif';
         
         player2Image.style.backgroundImage = `url('${player2PreviewPath}')`;
         player2Image.style.position = 'absolute';
         player2Image.style.bottom = '0';
         player2Image.style.right = '0';
         player2Image.style.left = 'auto';
+        player2Image.style.transform = 'scaleX(-1)'; // Mirror the player 2 image
         
         // Flipped orientation for Player 2 with slide-in animation
         if (!isPlayer2CurseOr) {

@@ -1,12 +1,18 @@
 # 🥊 Vortex Combat 
 
-![Vortex Combat Title Screen](../assests/forReadMe/splash.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b8bff160-b0eb-43a2-a381-d368c9213edb" width="800">
+</p>
 
-Vortex Combat is an intense 2D fighting game built with pure JavaScript, HTML and CSS. Choose your fighter from a roster of deadly combatants and battle head-to-head in treacherous arenas. With fluid animations, devastating special moves, and immersive audio and visuals, Vortex Combat brings the classic arcade fighting experience to your web browser.
+Vortex Combat is an intense 2D fighting game built with pure JavaScript, HTML, and CSS. Choose your fighter from a roster of deadly combatants and battle head-to-head in treacherous arenas. With fluid animations, devastating special moves, and immersive audio and visuals, Vortex Combat brings the classic arcade fighting experience to your web browser.
 
 ## 🎮 Gameplay 
 
-![Vortex Combat Gameplay](../assests/forReadMe/vsScreen.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b1e9828e-ba44-461a-bc30-1307f2a8320b" width="800">
+</p>
+
+
 
 Vortex Combat features a classic best-of-one round system. Each fighter has a health bar and stamina meter. Perform attacks to deplete your opponent's health, while managing your own stamina.
 
@@ -15,9 +21,10 @@ Fighters can move left and right, jump, guard, and perform quick or strong attac
 The game features a dynamic camera that zooms and pans to keep the action in view. Particle effects and screen shakes add impact to hits. The stages are interactive, with unique hazards and dynamic lighting.
 
 ## 🎨 Fighters
-
-![Curse-Or](../assests/forReadMe/Right_idle.gif) ![Reign](../assests/forReadMe/2_Left_finisher.gif)
-
+<p align="center">
+<img src="https://github.com/user-attachments/assets/0900583b-04cf-4226-a005-950808439dc6" width="200">
+<img src="https://github.com/user-attachments/assets/c927cf32-930b-4066-a6fb-ccb434a1deb8" width="100">
+</p>
 Vortex Combat launches with two unique fighters:
 
 - **Curse-Or**: A nimble martial artist with fast strikes and aerial attacks. His special move is the Shadow Shift, allowing him to teleport behind opponents.
@@ -36,7 +43,7 @@ Vortex Combat features 4 unique stages, each with their own theme, hazards, and 
 
 ## 🛠️ Development
 
-![JavaScript Logo](https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png)
+<img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" width="100">
 
 Vortex Combat was developed in just 2 weeks by the two-person team of Shalin and Ashim. Their goal was to create an authentic arcade fighting game experience using only vanilla web technologies.
 

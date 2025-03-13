@@ -1,1 +1,112 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Vortex Combat</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        }
+
+        .disclaimer-container {
+            max-width: 800px;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+        }
+
+        .warning-text {
+            color: #ff3366;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .disclaimer-text {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .fullscreen-tip {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            border: 2px solid #ff3366;
+            z-index: 1000;
+        }
+
+        .continue-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #ff3366, #ff0044);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+            animation-delay: 2s;
+        }
+
+        .continue-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 51, 102, 0.8); }
+            50% { text-shadow: 0 0 20px rgba(255, 51, 102, 1), 0 0 30px rgba(255, 51, 102, 0.8); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple fullscreen tip -->
+    <div class="fullscreen-tip">
+        Press F11 for fullscreen experience
+    </div>
+
+    <div class="disclaimer-container">
+        <h1 class="warning-text">WARNING</h1>
+        <p class="disclaimer-text">
+            You are about to enter the world of VORTEX COMBAT, where ancient martial arts meet supernatural powers. 
+            This game contains intense combat sequences, dramatic visual effects, and heart-pounding action that may 
+            overwhelm the unprepared. By proceeding, you acknowledge that you are ready to face the challenges that await.
+        </p>
+        <button class="continue-btn" onclick="window.location.href='components/playerselection.html'">Enter the Arena</button>
+    </div>
+</body>
+</html> 

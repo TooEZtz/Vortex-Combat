@@ -942,24 +942,23 @@ function showCredits() {
         </div>
         
         <div class="credits-section">
-            <h3>Art & Animation</h3>
-            <p>Character Design Team</p>
-            <p>Background Artists</p>
-            <p>UI/UX Designers</p>
-        </div>
-        
-        <div class="credits-section">
-            <h3>Sound Design</h3>
-            <p>Music Composition</p>
-            <p>Sound Effects</p>
-            <p>Voice Acting</p>
+            <h3>Asset Credits</h3>
+            <p>We want to express our heartfelt gratitude to the talented creators who made their artwork, music, and sound effects freely available for use in projects like ours.</p>
+            <p>Vortex Combat utilizes these assets to bring the game to life, but we do not claim ownership over any of them.</p>
         </div>
         
         <div class="credits-section">
             <h3>Special Thanks</h3>
-            <p>Our Amazing Testers</p>
+            <p>To the generous artists, musicians, and designers who shared their work</p>
+            <p>Your contributions made this game possible</p>
             <p>The Fighting Game Community</p>
             <p>And You, The Player!</p>
+        </div>
+        
+        <div class="credits-section">
+            <h3>Development Time</h3>
+            <p>This game was created in 2 weeks</p>
+            <p>Built with pure JavaScript, HTML, and CSS</p>
         </div>
     `;
     

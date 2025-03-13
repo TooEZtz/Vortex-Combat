@@ -300,16 +300,16 @@ class Announcer {
             style.textContent = `
                 @keyframes slideFromLeft {
                     0% { transform: translateX(-100%) scale(0.85); opacity: 0; }
-                    70% { transform: translateX(0) scale(0.85); opacity: 1; }
-                    85% { transform: translateX(-5%) scale(0.85); }
-                    100% { transform: translateX(0) scale(0.85); }
+                    70% { transform: translateX(-35%) scale(0.85); opacity: 1; }
+                    85% { transform: translateX(-40%) scale(0.85); }
+                    100% { transform: translateX(-35%) scale(0.85); }
                 }
 
                 @keyframes slideFromRight {
                     0% { transform: translateX(100%) scaleX(-1) scale(0.85); opacity: 0; }
-                    70% { transform: translateX(0) scaleX(-1) scale(0.85); opacity: 1; }
-                    85% { transform: translateX(5%) scaleX(-1) scale(0.85); }
-                    100% { transform: translateX(0) scaleX(-1) scale(0.85); }
+                    70% { transform: translateX(35%) scaleX(-1) scale(0.85); opacity: 1; }
+                    85% { transform: translateX(40%) scaleX(-1) scale(0.85); }
+                    100% { transform: translateX(35%) scaleX(-1) scale(0.85); }
                 }
 
                 @keyframes pulseGlow {
@@ -434,7 +434,7 @@ class Announcer {
         const isPlayer2CurseOr = player2Character === 'curse-or';
         const player2PreviewPath = isPlayer2CurseOr ? 
             '../assests/players/character_1/preview.gif' :
-            '../assests/players/character_2/2_Right_Preview.gif';
+            '../assests/players/character_2/2_Left_Preview.gif';
         
         player2Image.style.backgroundImage = `url('${player2PreviewPath}')`;
         player2Image.style.position = 'absolute';

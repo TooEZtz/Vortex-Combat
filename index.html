@@ -106,7 +106,7 @@
             This game contains intense combat sequences, dramatic visual effects, and heart-pounding action that may 
             overwhelm the unprepared. By proceeding, you acknowledge that you are ready to face the challenges that await.
         </p>
-        <button class="continue-btn" onclick="window.location.href='components/playerselection.html'">Enter the Arena</button>
+        <button class="continue-btn" onclick="sessionStorage.removeItem('skipInteraction'); sessionStorage.removeItem('introSeen'); window.location.href='components/playerselection.html'">Enter the Arena</button>
     </div>
 </body>
 </html> 

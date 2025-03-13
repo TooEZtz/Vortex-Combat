@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check if we're coming from the map page
     const comingFromMap = sessionStorage.getItem('comingFromMap') === 'true';
+    const comingFromFight = sessionStorage.getItem('comingFromFight') === 'true';
     
     // Immediately hide the character select screen and ensure it stays hidden
     // but only if not coming from map page
@@ -57,22 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500); // Match this with the CSS animation duration
     }
 
-    // Only show interaction overlay if coming directly from index.html
-    const comingFromIndex = document.referrer.endsWith('index.html');
+    // Check if we should show the interaction overlay
     const introSeen = sessionStorage.getItem('introSeen') === 'true';
+    const skipInteraction = sessionStorage.getItem('skipInteraction') === 'true';
     
     if (overlay) {
-        if (comingFromIndex && !introSeen && !comingFromMap) {
-            // Coming from index.html and haven't seen intro - show the overlay
-            console.log('Showing interactive overlay - coming from index.html');
+        if (!introSeen && !comingFromMap && !comingFromFight && !skipInteraction) {
+            // First time visit or coming from index - show the overlay
+            console.log('Showing interactive overlay - first visit or from index');
             
             // Event listeners for interaction
             document.addEventListener('keydown', handleTransition);
             overlay.addEventListener('click', handleTransition);
             overlay.addEventListener('touchstart', handleTransition);
-            } else {
+        } else {
             // Skip the overlay and determine next screen
-            console.log('Skipping interactive overlay');
+            console.log('Skipping interactive overlay - not first visit or coming from elsewhere');
             overlay.style.display = 'none';
             
             // Determine which screen to show next
@@ -1405,4 +1406,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+});
+
+// Set skipInteraction flag when navigating away
+window.addEventListener('beforeunload', () => {
+    if (window.location.pathname.includes('playerselection.html')) {
+        sessionStorage.setItem('skipInteraction', 'true');
+    }
 });

@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Initialize SoundManager and play music immediately
+    if (window.SoundManager) {
+        if (!SoundManager.soundsLoaded) {
+            SoundManager.init();
+        }
+        SoundManager.playBackgroundMusic('mapSelect');
+    }
+
     // Check if we're coming from player selection
     const comingFromPlayerSelection = document.referrer.endsWith('playerselection.html');
     if (comingFromPlayerSelection) {
@@ -411,11 +419,13 @@ function createControlsOverlay() {
     player1Controls.innerHTML = `
         <h3 style="color: #4a9eff; font-size: 1.5em; margin-bottom: 1em;">PLAYER 1</h3>
         <div style="text-align: left; font-size: 1.2em; line-height: 1.8;">
-            <p>🎮 Movement: W A S D</p>
-            <p>👊 Light Attack: U</p>
-            <p>💥 Heavy Attack: I</p>
-            <p>🛡️ Block: O</p>
-            <p>⚡ Special Move: P</p>
+            <p>🎮 W - Jump</p>
+            <p>🎮 A - Move Left</p>
+            <p>🎮 D - Move Right</p>
+            <p>🛡️ S - Guard</p>
+            <p>👊 F - Punch</p>
+            <p>🦶 G - Kick</p>
+            <p>⚡ Shift + A/D - Shadow Shift</p>
         </div>
     `;
 
@@ -424,11 +434,13 @@ function createControlsOverlay() {
     player2Controls.innerHTML = `
         <h3 style="color: #ff4a4a; font-size: 1.5em; margin-bottom: 1em;">PLAYER 2</h3>
         <div style="text-align: left; font-size: 1.2em; line-height: 1.8;">
-            <p>🎮 Movement: ↑ ← ↓ →</p>
-            <p>👊 Light Attack: NUM-1</p>
-            <p>💥 Heavy Attack: NUM-2</p>
-            <p>🛡️ Block: NUM-3</p>
-            <p>⚡ Special Move: NUM-0</p>
+            <p>🎮 ↑ - Jump</p>
+            <p>🎮 ← - Move Left</p>
+            <p>🎮 → - Move Right</p>
+            <p>🛡️ ↓ - Guard</p>
+            <p>👊 K - Punch</p>
+            <p>🦶 L - Kick</p>
+            <p>⚡ Ctrl + ←/→ - Shadow Shift</p>
         </div>
     `;
 
@@ -461,17 +473,35 @@ function createControlsOverlay() {
     overlayContainer.appendChild(content);
     document.body.appendChild(overlayContainer);
 
-    // Event listeners to close overlay
-    const closeOverlay = () => {
+    // Add event listeners to close overlay
+    document.addEventListener('keydown', function closeOnEnter(e) {
+        if (e.key === 'Enter') {
+            if (window.SoundManager) {
+                SoundManager.playClickSound();
+            }
+            // Add fade out animation
+            overlayContainer.style.opacity = '0';
+            overlayContainer.style.transition = 'opacity 0.5s';
+            
+            // Remove overlay after fade out
+            setTimeout(() => {
+                overlayContainer.remove();
+                document.removeEventListener('keydown', closeOnEnter);
+            }, 500);
+        }
+    });
+
+    overlayContainer.addEventListener('click', function() {
+        if (window.SoundManager) {
+            SoundManager.playClickSound();
+        }
+        // Add fade out animation
         overlayContainer.style.opacity = '0';
         overlayContainer.style.transition = 'opacity 0.5s';
-        setTimeout(() => overlayContainer.remove(), 500);
-    };
-
-    overlayContainer.addEventListener('click', closeOverlay);
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            closeOverlay();
-        }
+        
+        // Remove overlay after fade out
+        setTimeout(() => {
+            overlayContainer.remove();
+        }, 500);
     });
 }

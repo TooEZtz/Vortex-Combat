@@ -316,7 +316,14 @@ function createGameMenu() {
     const menuOptions = [
         { text: 'LOCAL PvP', action: startLocalPvP },
         { text: 'ONLINE PvP', action: null, disabled: true, comingSoon: true },
-        { text: 'AUDIO SETTINGS', action: showAudioSettings },
+        { text: 'AUDIO SETTINGS', action: () => {
+            if (window.SoundManager) {
+                SoundManager.playClickSound();
+            }
+            setTimeout(() => {
+                showAudioSettings();
+            }, 100);
+        }},
         { text: 'CREDITS', action: showCredits },
         { text: 'ABOUT', action: showAbout }
     ];
@@ -349,8 +356,17 @@ function createGameMenu() {
 
         if (!option.disabled) {
             button.addEventListener('click', () => {
-                playMenuSound();
+                if (option.text !== 'AUDIO SETTINGS') {
+                    playMenuSound();
+                }
                 option.action();
+            });
+
+            // Add hover sound
+            button.addEventListener('mouseenter', () => {
+                if (window.SoundManager) {
+                    SoundManager.playHoverSound();
+                }
             });
         }
 
@@ -436,62 +452,195 @@ function startLocalPvP() {
     }
 }
 
+// Function to update all audio volumes
+function updateAudioVolumes() {
+    if (!window.SoundManager) {
+        console.error('SoundManager not found');
+        return;
+    }
+
+    const bgmVolume = (sessionStorage.getItem('bgmVolume') || 80) / 100;
+    const sfxVolume = (sessionStorage.getItem('sfxVolume') || 50) / 100;
+
+    console.log('Updating volumes - BGM:', bgmVolume, 'SFX:', sfxVolume);
+
+    // Update background music volume
+    Object.values(SoundManager.music).forEach(track => {
+        if (track) {
+            track.volume = bgmVolume;
+            console.log('Set track volume:', track.src, track.volume);
+        }
+    });
+    if (SoundManager.currentMusic) {
+        SoundManager.currentMusic.volume = bgmVolume;
+        console.log('Set current music volume:', SoundManager.currentMusic.volume);
+    }
+
+    // Update sound effects volume
+    Object.values(SoundManager.sounds).forEach(sound => {
+        if (sound) {
+            sound.volume = sfxVolume;
+            console.log('Set sound volume:', sound.src, sound.volume);
+        }
+    });
+}
+
 function showAudioSettings() {
+    console.log('Opening audio settings...');
+    
+    // Create settings overlay
     const settingsOverlay = document.createElement('div');
     settingsOverlay.className = 'settings-overlay';
+    settingsOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
     
     const settingsContainer = document.createElement('div');
     settingsContainer.className = 'settings-container';
+    settingsContainer.style.cssText = `
+        background: rgba(20, 20, 20, 0.95);
+        padding: 2rem;
+        border-radius: 10px;
+        min-width: 300px;
+        border: 2px solid #ff0000;
+    `;
     
     const title = document.createElement('h2');
-    title.textContent = 'Audio Settings';
+    title.textContent = 'AUDIO SETTINGS';
+    title.style.cssText = `
+        text-align: center;
+        font-size: 2em;
+        margin-bottom: 1.5em;
+        color: #ff0000;
+        font-family: 'Press Start 2P', cursive;
+    `;
     settingsContainer.appendChild(title);
     
     // Audio settings
     const audioSettings = [
-        { name: 'Master Volume', id: 'masterVolume' },
-        { name: 'Music Volume', id: 'musicVolume' },
-        { name: 'SFX Volume', id: 'sfxVolume' },
-        { name: 'Voice Volume', id: 'voiceVolume' }
+        { name: 'Background Music', id: 'bgmVolume', defaultValue: 80 },
+        { name: 'Sound Effects', id: 'sfxVolume', defaultValue: 50 }
     ];
     
     audioSettings.forEach(setting => {
         const settingDiv = document.createElement('div');
         settingDiv.className = 'setting-item';
+        settingDiv.style.cssText = `
+            margin-bottom: 1.5rem;
+        `;
         
         const label = document.createElement('label');
         label.textContent = setting.name;
+        label.style.cssText = `
+            color: #ff0000;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em;
+        `;
+        
+        const savedValue = parseInt(sessionStorage.getItem(setting.id)) || setting.defaultValue;
         
         const slider = document.createElement('input');
         slider.type = 'range';
         slider.min = '0';
         slider.max = '100';
-        slider.value = '100';
+        slider.value = savedValue;
         slider.className = 'volume-slider';
         slider.id = setting.id;
-        
-        const valueDisplay = document.createElement('span');
-        valueDisplay.textContent = '100%';
+        slider.style.cssText = `
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #ff0000 ${savedValue}%, #333 ${savedValue}%);
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 2px;
+            cursor: pointer;
+        `;
         
         slider.addEventListener('input', (e) => {
-            valueDisplay.textContent = `${e.target.value}%`;
-            // Here you would also update the actual volume
+            const value = e.target.value;
+            slider.style.background = `linear-gradient(to right, #ff0000 ${value}%, #333 ${value}%)`;
+            
+            // Store the value in session storage
+            sessionStorage.setItem(setting.id, value);
+            
+            // Update the volume in SoundManager
+            if (window.SoundManager) {
+                const volume = value / 100;
+                if (setting.id === 'bgmVolume') {
+                    // Update all music tracks
+                    Object.values(SoundManager.music).forEach(track => {
+                        if (track) {
+                            track.volume = volume;
+                        }
+                    });
+                    if (SoundManager.currentMusic) {
+                        SoundManager.currentMusic.volume = volume;
+                    }
+                } else if (setting.id === 'sfxVolume') {
+                    // Update all sound effects
+                    Object.values(SoundManager.sounds).forEach(sound => {
+                        if (sound) {
+                            sound.volume = volume;
+                        }
+                    });
+                    // Play a test sound
+                    SoundManager.playHoverSound();
+                }
+            }
         });
         
         settingDiv.appendChild(label);
         settingDiv.appendChild(slider);
-        settingDiv.appendChild(valueDisplay);
         settingsContainer.appendChild(settingDiv);
     });
     
     // Back button
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
-    backButton.textContent = 'Back';
-    backButton.onclick = () => {
-        settingsOverlay.classList.add('fade-out');
-        setTimeout(() => settingsOverlay.remove(), 500);
-    };
+    backButton.textContent = 'BACK';
+    backButton.style.cssText = `
+        background: #ff0000;
+        color: white;
+        border: none;
+        padding: 10px;
+        width: 100%;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        font-family: 'Press Start 2P', cursive;
+        margin-top: 1rem;
+    `;
+    
+    backButton.addEventListener('mouseover', () => {
+        backButton.style.background = '#ff3333';
+        if (window.SoundManager) {
+            SoundManager.playHoverSound();
+        }
+    });
+    
+    backButton.addEventListener('mouseout', () => {
+        backButton.style.background = '#ff0000';
+    });
+    
+    backButton.addEventListener('click', () => {
+        if (window.SoundManager) {
+            SoundManager.playClickSound();
+        }
+        settingsOverlay.remove();
+    });
     
     settingsContainer.appendChild(backButton);
     settingsOverlay.appendChild(settingsContainer);
@@ -896,14 +1045,31 @@ function handleSplashTransition() {
 
 // Initialize when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize SoundManager if it exists
+    if (window.SoundManager && !SoundManager.soundsLoaded) {
+        console.log('Initializing SoundManager...');
+        SoundManager.init();
+    }
+
+    // Update audio volumes from session storage
+    updateAudioVolumes();
+
     // Add click listener for music
     document.body.addEventListener('click', () => {
-        SoundManager.playBackgroundMusic('characterSelect');
+        if (window.SoundManager) {
+            SoundManager.playBackgroundMusic('characterSelect');
+            // Update volumes after starting music
+            updateAudioVolumes();
+        }
     }, { once: true });
 
     // Add keydown listener for music
     document.body.addEventListener('keydown', () => {
-        SoundManager.playBackgroundMusic('characterSelect');
+        if (window.SoundManager) {
+            SoundManager.playBackgroundMusic('characterSelect');
+            // Update volumes after starting music
+            updateAudioVolumes();
+        }
     }, { once: true });
 
     // Ensure we're in fullscreen mode if we were before

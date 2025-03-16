@@ -1047,11 +1047,11 @@ function applyDamage(player, amount) {
     showHitEffect(player);
     
     // Add screen shake for significant damage
-    if (amount >= 10) {
+    if (amount >= 15) {
         document.body.classList.add('screen-shake');
         setTimeout(() => {
             document.body.classList.remove('screen-shake');
-        }, 200);
+        }, 150);
     }
     
     // Check for knockout
@@ -1250,7 +1250,7 @@ function showHitEffect(player) {
             fightArena.classList.add('screen-shake');
             setTimeout(() => {
                 fightArena.classList.remove('screen-shake');
-            }, 300);
+            }, 250);
         }
 
         // Create container for hit outline
@@ -3136,7 +3136,7 @@ function createDashClone(player) {
 
                         // Add screen shake effect
                         arena.classList.add('screen-shake');
-                        setTimeout(() => arena.classList.remove('screen-shake'), 500);
+                        setTimeout(() => arena.classList.remove('screen-shake'), 250);
 
                         // Remove clone after enhanced hit animation
                         setTimeout(() => {
@@ -3485,7 +3485,7 @@ window.addEventListener('gameOver', (event) => {
 // Add this near other navigation functions
 function goToMainMenu() {
     // Set a flag to skip the splash screen
-    sessionStorage.setItem('skipSplash', 'true');
+    // sessionStorage.setItem('skipSplash', 'true');
     
     // Navigate to player selection page
     window.location.href = 'playerselection.html';

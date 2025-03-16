@@ -968,14 +968,14 @@ body {
 /* Update screen shake animation to not affect overlays */
 @keyframes hitShake {
     0% { transform: translate(0, 0) rotate(0deg); }
-    25% { transform: translate(-5px, -2px) rotate(-3deg); }
-    50% { transform: translate(5px, 2px) rotate(3deg); }
-    75% { transform: translate(-3px, -1px) rotate(-2deg); }
+    25% { transform: translate(-2px, -1px) rotate(-1deg); }
+    50% { transform: translate(2px, 1px) rotate(1deg); }
+    75% { transform: translate(-1px, 0px) rotate(-0.5deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
 }
 
 .screen-shake {
-    animation: hitShake 0.3s ease-in-out;
+    animation: hitShake 0.25s ease-in-out;
     transform-style: preserve-3d;
 }
 

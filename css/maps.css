@@ -5,6 +5,7 @@ body {
   background-color: #000;
   color: #fff;
   overflow-x: hidden;
+  overflow-y: auto; /* Allow vertical scrolling when needed */
   font-size: 18px;
   position: relative;
   min-height: 100vh;
@@ -19,8 +20,10 @@ body {
   backdrop-filter: blur(5px); /* Blur effect for better text readability */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* Changed from center to allow scrolling */
   align-items: center;
+  overflow-y: auto; /* Allow vertical scrolling when needed */
+  max-height: 100vh; /* Ensure it doesn't exceed viewport height */
 }
 
 /* Background preview container */
@@ -255,6 +258,7 @@ body.map-hover .select-header h2 {
     justify-content: center;
     gap: clamp(10px, 2vw, 20px);
     margin-top: 30px;
+    margin-bottom: 20px; /* Add bottom margin for scrollable content */
     flex-wrap: wrap;
     padding: 10px;
 }
@@ -316,6 +320,60 @@ body.map-hover .select-header h2 {
     }
 }
 
+/* Adjust for very small heights */
+@media (max-height: 600px) {
+  .maps-grid {
+    gap: 15px;
+    margin-top: 10px;
+  }
+  
+  .map-card {
+    min-height: 180px;
+  }
+  
+  .select-header {
+    margin-bottom: 10px;
+  }
+  
+  .select-header h2 {
+    font-size: clamp(20px, 4vw, 32px);
+  }
+  
+  .button-container {
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
+}
+
+/* For extremely small heights, reduce sizes further */
+@media (max-height: 450px) {
+  .maps-grid {
+    gap: 10px;
+  }
+  
+  .map-card {
+    min-height: 150px;
+  }
+  
+  .map-preview {
+    padding-bottom: 40%; /* Reduce image height */
+  }
+  
+  .map-info {
+    padding: 8px;
+  }
+  
+  .map-info h3 {
+    font-size: 16px;
+    margin: 0;
+  }
+  
+  .map-info p {
+    font-size: 12px;
+    margin: 2px 0 0;
+  }
+}
+
 /* Touch device optimizations */
 @media (hover: none) {
     .map-card:hover {
@@ -333,4 +391,9 @@ body.map-hover .select-header h2 {
     .button-container button:active {
         transform: scale(0.95);
     }
+}
+
+/* Ensure controls overlay is scrollable if needed */
+.controls-overlay {
+  overflow-y: auto !important;
 }
